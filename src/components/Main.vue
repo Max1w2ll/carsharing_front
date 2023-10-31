@@ -46,71 +46,18 @@
       </div>
 
       <div class="calendar">
-        <p> КАЛЕНДАРЬ </p>
-
-        <table>
-
-        <tr>
-          <th colspan="7" style="font-size: 20px; height: 70px;"> Октябрь 2023 </th>
-        </tr>
-
-        <tr>
-          <th>Пн</th>
-          <th>Вт</th>
-          <th>Ср</th>
-          <th>Чт</th>
-          <th>Пт</th>
-          <th>Сб</th>
-          <th>Вс</th>
-        </tr>
-
-        <tr>
-          <td>1</td>
-          <td>2</td>
-          <td>3</td>
-          <td>4</td>
-          <td>5</td>
-          <td>6</td>
-          <td>7</td>
-          </tr>
-
-          <tr>
-          <td>8</td>
-          <td>9</td>
-          <td>10</td>
-          <td>11</td>
-          <td>12</td>
-          <td>13</td>
-          <td>14</td>
-          </tr>
-
-          <tr>
-          <td>15</td>
-          <td>16</td>
-          <td>17</td>
-          <td>18</td>
-          <td>19</td>
-          <td>20</td>
-          <td>21</td>
-          </tr>
-
-          <tr>
-          <td>22</td>
-          <td>23</td>
-          <td>24</td>
-          <td>25</td>
-          <td>26</td>
-          <td>27</td>
-          <td>28</td>
-          </tr>
-
-          <tr>
-          <td>29</td>
-          <td>30</td>
-          <td>31</td>
-          </tr>
-
-          </table>
+        <div id="app">
+          <h1>My Calendar</h1>
+          <calendar-view
+            :show-date="showDate"
+            class="theme-default holiday-us-traditional holiday-us-official">
+            <template #header="{ headerProps }">
+              <calendar-view-header
+                :header-props="headerProps"
+                @input="setShowDate" />
+            </template>
+          </calendar-view>
+        </div>
 
       </div>
     </div>
@@ -118,11 +65,25 @@
 </template>
 
 <script>
+import { CalendarView, CalendarViewHeader } from "vue-simple-calendar"
+
+import "@/css/default.css"
+import "@/css/holidays-us.css"
+
 import axios from 'axios';
 import ModalWindows from '@/components/ModalWindows.js';
 
 export default {
   name: 'Main',
+  components: {
+    CalendarView,
+    CalendarViewHeader,
+  },
+  methods: {
+    setShowDate(d) {
+      this.showDate = d;
+    },
+  },
 
   data() {
     return {
@@ -141,6 +102,7 @@ export default {
           beginDate: "2023-22-09",
           endDate: "2023-23-09"
         },
+        showDate: new Date(),
 
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
         orders: () => [],
@@ -319,6 +281,15 @@ export default {
     overflow-x: hidden;
 
     background: var(--main-background);
+  }
+
+  #app {
+    font-family: 'Avenir', Helvetica, Arial, sans-serif;
+    color: #2c3e50;
+    height: 67vh;
+    width: 90vw;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .darkLayer {
