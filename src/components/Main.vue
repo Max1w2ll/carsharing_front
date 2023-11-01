@@ -43,11 +43,17 @@
 
       <div class="availableCars">
         <p> ДОСТУПНЫЕ МАШИНЫ </p>
-
-        <div class="car" v-for="car in cars" :key="car">
-          <p> {{car.name}} </p>
+        <div class="carList">
+          <div class="car" v-for="car in cars" :key="car.id">
+            <div class="header">
+              <p class="name">{{ car.name }}</p>
+              <p class="carId">№ {{ car.id }}</p>
+            </div>
+            <div class="body">
+              <div class="description">{{ car.desc }}</div>
+            </div>
+          </div>
         </div>
-
       </div>
 
       <div class="calendar">
@@ -215,6 +221,7 @@ export default {
           this.cars = res.data
           console.log(this.cars);
       });
+      this.cars = [{"id":0,"name":"Toyota Camry","isShowInList":1,"desc":"Цвет серый"},{"id":3,"name":"Mitsubishi Lancer, ЕЕ 942 A 70","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","isShowInList":1,"desc":"Create/edit/edit 123"}];
     },
 
     getOrders() {
@@ -607,14 +614,13 @@ export default {
   }
 
   .mainWindow .availableCars .car, .mainWindow .history .date {
-    height: 40px;
     width: 270px;
 
     line-height: 35px;
 
     font-size: 20px;
   }
-  .mainWindow .availableCars .car:hover, .mainWindow .history .date:hover {
+  .mainWindow .availableCars .car:hover, .mainWindow .orderList .order:hover,.mainWindow .history .date:hover {
     background-color: #eeeeee;
   }
 
@@ -741,5 +747,55 @@ export default {
     font-weight: bold;
   }
 
+  .carList {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+    font-family: var(--main-font);
+    font-size: 15px;
+  }
+
+  .car {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    border: 1px solid var(--sub-color);
+    margin-bottom: 10px;
+  }
+
+  .car .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    color: var(--text-color);
+    background: var(--sub-color);
+  }
+
+  .car .body {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+    font-family: var(--main-font);
+    font-size: 15px;
+  }
+
+  .car .body .description {
+    line-height: 1.2;
+  }
+
+  .car .header p {
+    margin: 0;
+    font-family: var(--main-font);
+    font-size: 14px;
+    padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .car .header .carId {
+    text-align: right;
+  }
 
 </style>
