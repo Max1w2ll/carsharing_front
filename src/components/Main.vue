@@ -20,11 +20,16 @@
         <p> ИСТОРИЯ </p>
 
         <div class="orderList">
-          <div v-for="order in orders" :key="order">
-            <div class="date"> 
-              <p> {{order.beginDate}}:  {{order.status}} </p>
-            </div>
-          </div>
+          <div class="order" v-for="order in orders" :key="order.id">
+               <div class="header">
+                   <p class="status">{{ order.status }}</p>
+                   <p class="autoId">Автомобиль {{ order.car }}</p>
+               </div>
+               <div class="body">
+                   <div class="username">{{ order.username }}</div>
+                   <div class="dates">{{ formatDate(order.beginDate) }} - {{ formatDate(order.endDate) }}</div>
+               </div>
+           </div>
           <div class="noOrders" v-if="orders.length == 0">
             <img src="../assets/icons/noOrders.png" width="74" height="74"> 
             <p> Заказов нет! </p>
@@ -111,6 +116,11 @@ export default {
 
   methods: {
 
+    formatDate(date) {
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(date).toLocaleDateString('ru-RU', options);
+    },
+    
     getUser() {
       axios.get(this.USER_GET, { withCredentials: true })
       .then((res) => {
@@ -213,6 +223,8 @@ export default {
           this.orders = res.data
           console.log(this.orders);
       });
+      //TODO
+      this.orders = [{"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонено","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0},{"id":4,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2021-01-21","endDate":"2022-02-22","car":3},{"id":5,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"TEXT TEXT TEXT","beginDate":"2021-01-21","endDate":"2022-02-22","car":0},{"id":6,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Проверка пересечения дат","beginDate":"2022-02-22","endDate":"2022-03-01","car":0},{"id":7,"username":"Девяшин Егор Андреевич","status":"В обработке","adminName":null,"desc":"Проверка пересечения двойных дат1","beginDate":"2021-01-21","endDate":"2023-02-22","car":0}]
     },
 
     async createOrder() {
@@ -234,7 +246,6 @@ export default {
 
   mounted() {
     setTimeout(() => {
-        this.getUser();
         this.getCars();
         this.getOrders();
     }, 100);
@@ -687,6 +698,48 @@ export default {
   }
 
 
+  .order {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    border: 1px solid var(--sub-color);
+    margin-bottom: 10px;
+  }
+
+  .order .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    color: var(--text-color);
+    background: var(--sub-color);
+  }
+
+  .order .body {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+    font-family: var(--main-font);
+    font-size: 15px;
+  }
+
+  .order .header p {
+    margin: 0;
+    font-family: var(--main-font);
+    font-size: 14px;
+    padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .order .header .autoId {
+    text-align: right;
+  }
+
+  .order .body .username {
+    font-weight: bold;
+  }
 
 
 </style>
