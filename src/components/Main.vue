@@ -47,7 +47,7 @@
           <div class="car" v-for="car in cars" :key="car.id">
             <div class="header">
               <p class="name">{{ car.name }}</p>
-              <p class="carId">№ {{ car.id }}</p>
+              <p class="carId">{{ car.number }}</p>
             </div>
             <div class="body">
               <div class="description">{{ car.desc }}</div>
@@ -221,7 +221,7 @@ export default {
           this.cars = res.data
           console.log(this.cars);
       });
-      this.cars = [{"id":0,"name":"Toyota Camry","isShowInList":1,"desc":"Цвет серый"},{"id":3,"name":"Mitsubishi Lancer, ЕЕ 942 A 70","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","isShowInList":1,"desc":"Create/edit/edit 123"}];
+      this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
     },
 
     getOrders() {
@@ -231,7 +231,7 @@ export default {
           console.log(this.orders);
       });
       //TODO
-      this.orders = [{"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонено","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0},{"id":4,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2021-01-21","endDate":"2022-02-22","car":3},{"id":5,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"TEXT TEXT TEXT","beginDate":"2021-01-21","endDate":"2022-02-22","car":0},{"id":6,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Проверка пересечения дат","beginDate":"2022-02-22","endDate":"2022-03-01","car":0},{"id":7,"username":"Девяшин Егор Андреевич","status":"В обработке","adminName":null,"desc":"Проверка пересечения двойных дат1","beginDate":"2021-01-21","endDate":"2023-02-22","car":0}]
+      this.orders = [{"id":1,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"АААААААААААААААА","beginDate":"2022-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},{"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонено","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},{"id":4,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2021-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},{"id":5,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"TEXT TEXT TEXT","beginDate":"2021-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},{"id":6,"username":"Девяшин Егор Андреевич","status":"Одобрено","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль дял выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 685 A 70"},{"id":7,"username":"Девяшин Егор Андреевич","status":"В обработке","adminName":null,"desc":"Проверка пересечения двойных дат1","beginDate":"2021-01-21","endDate":"2023-02-22","car":0,"numberCar":"CA 117 A 70"}];
     },
 
     async createOrder() {
