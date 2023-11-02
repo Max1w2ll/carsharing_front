@@ -23,7 +23,7 @@
           <div class="order" v-for="order in orders" :key="order.id">
                <div class="header">
                    <p class="status">{{ order.status }}</p>
-                   <p class="autoId">Автомобиль {{ order.car }}</p>
+                   <p class="autoId">{{ order.numberCar }}</p>
                </div>
                <div class="body">
                    <div class="username">{{ order.username }}</div>
