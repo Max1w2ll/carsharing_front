@@ -56,19 +56,87 @@
         </div>
       </div>
 
-      <div class="calendar">
-        <div id="app">
-          <h1>My Calendar</h1>
-          <calendar-view
-            :show-date="showDate"
-            class="theme-default holiday-us-traditional holiday-us-official">
-            <template #header="{ headerProps }">
-              <calendar-view-header
-                :header-props="headerProps"
-                @input="setShowDate" />
-            </template>
-          </calendar-view>
+      <div class="info">
+        <p> ИНФОРМАЦИЯ </p>
+
+        <p class="selectedCar"> Выбранная машина: </p>
+        <p class="dateRent"> Дата арендования: </p>
+        <div class="dateSettings">
+          <tr> <td> От: </td><td><input id="settingDateFrom" type="date"></td></tr>
+          <tr> <td> До: </td><td><input id="settingDateTo" type="date"></td></tr>
         </div>
+
+
+
+      </div>
+
+      <div class="calendar">
+        <table>
+
+      <tr>
+        <th colspan="7" style="font-size: 20px; height: 70px;"> Ноябрь 2023 </th>
+      </tr>
+
+      <tr>
+        <th>Пн</th>
+        <th>Вт</th>
+        <th>Ср</th>
+        <th>Чт</th>
+        <th>Пт</th>
+        <th>Сб</th>
+        <th>Вс</th>
+      </tr>
+
+      <tr>
+        <td>30</td>
+        <td>31</td>
+        <td>1</td>
+        <td>2</td>
+        <td>3</td>
+        <td>4</td>
+        <td>5</td>
+
+        </tr>
+
+        <tr>
+        <td>6</td>
+        <td>7</td>
+        <td>8</td>
+        <td>9</td>
+        <td>10</td>
+        <td>11</td>
+        <td>12</td>
+        </tr>
+
+        <tr>
+        <td>13</td>
+        <td>14</td>
+        <td>15</td>
+        <td>16</td>
+        <td>17</td>
+        <td>18</td>
+        <td>19</td>
+        </tr>
+
+        <tr>
+        <td>20</td>
+        <td>21</td>
+        <td>22</td>
+        <td>23</td>
+        <td>24</td>
+        <td>25</td>
+        <td>26</td>
+        </tr>
+
+        <tr>
+        <td>27</td>
+        <td>28</td>
+        <td>29</td>
+        <td>30</td>
+        <td>31</td>
+        </tr>
+
+        </table>
 
       </div>
     </div>
@@ -305,9 +373,6 @@ export default {
     font-family: 'Avenir', Helvetica, Arial, sans-serif;
     color: #2c3e50;
     height: 67vh;
-    width: 90vw;
-    margin-left: auto;
-    margin-right: auto;
   }
 
   .darkLayer {
@@ -594,10 +659,10 @@ export default {
     justify-content: center;
   }
 
-  .mainWindow .history, .mainWindow .availableCars, .mainWindow .calendar {
+  .mainWindow .history, .mainWindow .availableCars, .mainWindow .info, .mainWindow .calendar {
     padding-left: 32px;
-    margin: 20px;
-    height: 600px;
+    margin: 10px;
+    height: 650px;
     width: 300px;
 
     font-size: 24px;
@@ -610,10 +675,12 @@ export default {
   }
 
   .mainWindow .availableCars {
-    width: 400px;
+    width: 320px;
   }
 
   .mainWindow .availableCars .car, .mainWindow .history .date {
+    padding-bottom: 28px;
+
     width: 270px;
 
     line-height: 35px;
@@ -624,8 +691,12 @@ export default {
     background-color: #eeeeee;
   }
 
-  .orderList {
-    height: 450px; 
+  .orderList, .carList {
+    padding-right: 15px;
+
+    height: 480px; 
+
+    overflow-x: clip;
     overflow-y: scroll;
   }
   .ordersList::-webkit-scrollbar-track {
@@ -641,6 +712,8 @@ export default {
   }
 
   .createOrder {
+    margin-top: 20px;
+
     height: 40px;
     width: 275px;
 
@@ -672,6 +745,19 @@ export default {
   li:hover {
     background-color: #eeeeee;
   }
+
+  .mainWindow .info {
+    width: 380px;
+  }
+
+  .mainWindow .info .selectedCar, .mainWindow .info .dateRent, .mainWindow .info .dateSettings {
+    font-size: 18px;
+  }
+
+  .mainWindow .info .dateSettings {
+    display: inline-grid;
+  }
+
 
   .mainWindow .calendar {
     width: 600px;
@@ -747,10 +833,18 @@ export default {
     font-weight: bold;
   }
 
+  .order .body .dates {
+    font-size: 14px;
+  }
+
   .carList {
+    margin-top: 10px;
+
+    overflow-y: scroll;
+
     display: flex;
     flex-direction: column;
-    margin-top: 10px;
+
     font-family: var(--main-font);
     font-size: 15px;
   }
