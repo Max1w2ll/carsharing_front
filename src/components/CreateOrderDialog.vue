@@ -79,12 +79,13 @@
                 beginDate: row.beginDate,
                 endDate: row.endDate,
                 status: row.status,
+                desc: row.desc,
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(rows);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Бронирование автомобилей");
-            XLSX.utils.sheet_add_aoa(worksheet, [["Номер машины","ФИО водителя","Дата начала заказа","Дата окончания заказа","Статус заказа"]], { origin: "A1" });
+            XLSX.utils.sheet_add_aoa(worksheet, [["Номер машины","ФИО водителя","Дата начала заказа","Дата окончания заказа","Статус заказа","Примечание"]], { origin: "A1" });
 
             for (let i in worksheet) {
                 if (typeof(worksheet[i]) != "object") continue;
@@ -97,7 +98,7 @@
                     },
                     alignment: {
                         vertical: "center",
-                        horizontal: "center",
+                        horizontal: cell.c < 5 ? "center" : "left",
                         wrapText: '1',
                     },
                 };
@@ -132,6 +133,7 @@
                 { 'width': 20  },
                 { 'width': 20  },
                 { 'width': 20  },
+                { 'width': 40 },
             ];
 
             // Write file
@@ -158,9 +160,9 @@
                 <table class="bulkTableHeader">
                     <td class="filter"> Фильтры </td>
                 </table> 
-                <div style="overflow-y: auto; overflow-x: hidden; height: 400px; ">
+                <div style="overflow-y: auto; overflow-x: hidden; height: 400px;">
                     <table class="bulkTableFilters">
-                          Период создания
+                          Период бронирования
                         <tr class="dateFilter">
                           <div class="divDateFilter">
                             От: 
@@ -205,6 +207,7 @@
                     <td class="beginDate">  Дата начала заказа </td>
                     <td class="endDate">  Дата окончания заказа </td>
                     <td class="status">  Статус заказа </td>
+                    <td class="desc"> Примечание </td>
                 </table>
                 <table class="bulkTableContent">
                   <tr v-for="bulkOrders in orders" :key="orders">
@@ -213,6 +216,7 @@
                     <td class="beginDate"> {{ this.formatDate(bulkOrders.beginDate) }}</td>
                     <td class="endDate"> {{ this.formatDate(bulkOrders.endDate) }} </td>
                     <td class="status"> {{ bulkOrders.status }}</td>
+                    <td class="desc"> <div class="descDiv"> {{ bulkOrders.desc }} </div> </td>
                   </tr>
                 </table>
             </div>
@@ -236,6 +240,17 @@
     justify-content: center;
     align-items: center;
   }
+  
+  .descDiv {
+    font-size: small; 
+    overflow:hidden;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    vertical-align: middle; text-align: left;
+  }
 
   .modal {
     background: #FFFFFF;
@@ -251,6 +266,7 @@
     justify-content: space-between;
     display: flex;
     padding-top: 6px;
+    padding-left: 18px;
   }
 
 
@@ -397,6 +413,11 @@
     max-width: 200px;
   }
 
+  .modal-backdrop .content .desc {
+    width: 200px;
+    max-width: 200px;
+  }
+
   .modal-backdrop .content .status {
     width: 150px;
     max-width: 150px;
@@ -412,6 +433,7 @@
     padding: 14px;
     overflow-y: auto;
     padding-right: 27px;
+    padding-left: 16px;
   }
 
   .bulkTableFilters .vueSelectFilter {
@@ -427,6 +449,7 @@
   }
 
   .divDateFilter {
+    margin-right: 5px;
     margin-top: 5px;
   }
 
