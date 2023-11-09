@@ -323,11 +323,10 @@
   }
 
   .modal-backdrop .loadBulk {
-    margin-right: 6px;
     all: unset;
-
+    margin-right: 11px;
     height: 30px;
-    width: 155px;
+    width: 130px;
 
     border: 1px solid;
 
@@ -371,6 +370,7 @@
     overflow-x: hidden;
     display: block;
     border-bottom: 2px solid;
+    overflow-y: scroll; 
   }
 
   .modal-backdrop .content .bulkTableContent tr {
@@ -401,7 +401,7 @@
     width: 150px;
     max-width: 150px;
   }
-
+  
   .modal-backdrop .content .filter, .modal-backdrop .content .filterSettings {
     width: 270px;
     max-width: 280px;
@@ -409,8 +409,9 @@
 
   .bulkTableFilters {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     overflow-y: auto;
+    padding-right: 27px;
   }
 
   .bulkTableFilters .vueSelectFilter {
@@ -438,6 +439,10 @@
     background: var(--div-color);
     border: none;
     color: var(--main-color);
+  }
+
+  .vs__dropdown-menu {
+   overflow-x: hidden; 
   }
 
   .vs__clear, .vs__open-indicator {
