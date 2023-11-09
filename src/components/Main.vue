@@ -307,11 +307,13 @@ export default {
     },
 
     getOrders() {
+      /*
       axios.get(this.ORDERS_GET, { withCredentials: true })
       .then((res) => {
           this.orders = res.data
           console.log(this.orders);
       });
+      */
       //TODO
       this.orders = [{"id":1,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"АААААААААААААААА","beginDate":"2022-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},
         {"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},

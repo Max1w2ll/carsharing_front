@@ -147,7 +147,7 @@
     <div class="modal">
       <header class="modal-header">
         <slot name="header">
-          <div class="title"> Построение отчета о заявках на машины {{ selectedStatuses }}</div>
+          <div class="title"> Построение отчета о заявках на машины </div>
           <img class="closeEditorButton" src="../assets/icons/close_white.png" @click="close"/>
         </slot>
       </header>
@@ -191,7 +191,7 @@
                         <div class="totalCount">
                           Всего: {{ orders.length }}
                         </div>
-                        <button @click="loadTotal();" class="loadBulk"> Загрузить </button>
+                        <button @click="loadTotal();" class="loadBulk"> Скачать </button>
                       </footer>
                 </div>
             </div>
