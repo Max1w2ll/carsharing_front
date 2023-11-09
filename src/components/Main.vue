@@ -1,5 +1,8 @@
 <template>
   <div>
+    <CreateOrderDialog  :data="orders"  v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
+  </div>
+  <div>
     <div class="header">
       <div class="buttons">
         <a> Главная </a>
@@ -18,6 +21,8 @@
     <div class="mainWindow">
       <div class="history">
         <p> ИСТОРИЯ </p>
+
+        <button class="createOrder" @click.prevent="openCreateOrderDialog"> заказ</button>
 
         <div class="orderList">
           <div class="order" v-for="order in orders" :key="order.id">
@@ -144,19 +149,20 @@
 </template>
 
 <script>
-import { CalendarView, CalendarViewHeader } from "vue-simple-calendar"
+import VueSelect from 'vue-select';
 
 import "@/css/default.css"
 import "@/css/holidays-us.css"
 
 import axios from 'axios';
 import ModalWindows from '@/components/ModalWindows.js';
+import CreateOrderDialog from '@/components/CreateOrderDialog.vue';
 
 export default {
   name: 'Main',
   components: {
-    CalendarView,
-    CalendarViewHeader,
+    CreateOrderDialog,
+    VueSelect
   },
   methods: {
     setShowDate(d) {
@@ -166,6 +172,7 @@ export default {
 
   data() {
     return {
+        showCreateOrderDialog: false,
         USER_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/checkjwt',
         user: () => [],
 
@@ -189,6 +196,13 @@ export default {
   },
 
   methods: {
+
+    openCreateOrderDialog() {
+      this.showCreateOrderDialog = true;
+    },
+    closeCreateOrderDialog() {
+      this.showCreateOrderDialog = false;
+    },
 
     formatDate(date) {
       const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -299,7 +313,44 @@ export default {
           console.log(this.orders);
       });
       //TODO
-      this.orders = [{"id":1,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"АААААААААААААААА","beginDate":"2022-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},{"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонено","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},{"id":4,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2021-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},{"id":5,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"TEXT TEXT TEXT","beginDate":"2021-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},{"id":6,"username":"Девяшин Егор Андреевич","status":"Одобрено","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль дял выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 685 A 70"},{"id":7,"username":"Девяшин Егор Андреевич","status":"В обработке","adminName":null,"desc":"Проверка пересечения двойных дат1","beginDate":"2021-01-21","endDate":"2023-02-22","car":0,"numberCar":"CA 117 A 70"}];
+      this.orders = [{"id":1,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"АААААААААААААААА","beginDate":"2022-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},
+        {"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":14,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2021-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},
+        {"id":15,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"TEXT TEXT TEXT","beginDate":"2021-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":16,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль дял выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 685 A 70"},
+        {"id":17,"username":"Девяшин Егор Андреевич","status":"В обработке","adminName":null,"desc":"Проверка пересечения двойных дат1","beginDate":"2021-01-21","endDate":"2023-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":30,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"АААААААААААААААА","beginDate":"2022-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},
+        {"id": 23, "username": "Елена Михайлова", "status": "В обработке", "adminName": null, "desc": "Заявка на отпуск", "beginDate": "2022-03-15", "endDate": "2022-03-25", "car": 0, "numberCar": "BM 123 X 56"},
+        {"id": 25, "username": "Елена Михайлова", "status": "Отклонен", "adminName": "Анна Иванова", "desc": "Заявка на перенос рабочего графика", "beginDate": "2022-04-10", "endDate": "2022-04-15", "car": 0, "numberCar": "BM 123 X 56"},
+        {"id": 26, "username": "Елена Михайлова", "status": "Одобрен", "adminName": "Алексей Сергеев", "desc": "Заявка на участие в семинаре по маркетингу", "beginDate": "2022-05-20", "endDate": "2022-05-22", "car": 1, "numberCar": "BM 123 X 56"},
+        {"id": 27, "username": "Александр Черепок", "status": "Отклонен", "adminName": "Сергей Иванов", "desc": "Заявка на изменение рабочего времени", "beginDate": "2022-06-05", "endDate": "2022-06-10", "car": 0, "numberCar": "BM 123 X 56"},
+        {"id": 28, "username": "Максим Григорьев", "status": "В обработке", "adminName": null, "desc": "Заявка на отпуск с 1 июля по 15 июля", "beginDate": "2022-07-01", "endDate": "2022-07-15", "car": 0, "numberCar": "AA 000 A 000"},
+        {"id": 29, "username": "Максим Григорьев", "status": "Одобрен", "adminName": "Анна Петрова", "desc": "Заявка на командировку в Москву", "beginDate": "2022-08-10", "endDate": "2022-08-15", "car": 2, "numberCar": "AA 000 A 000"},
+        {"id": 20, "username": "Елена Михайлова", "status": "В обработке", "adminName": null, "desc": "Заявка на участие в конференции", "beginDate": "2022-09-15", "endDate": "2022-09-17", "car": 0, "numberCar": "AA 000 A 000"},
+        {"id": 21, "username": "Александр Черепок", "status": "Отклонен", "adminName": "Ольга Кузнецова", "desc": "Заявка на изменение рабочего места", "beginDate": "2022-10-10", "endDate": "2022-10-31", "car": 0, "numberCar": "CA 117 A 70"},
+        {"id": 22, "username": "Максим Григорьев", "status": "Одобрен", "adminName": "Евгений Сидоров", "desc": "Заявка на отпуск на новогодние праздники", "beginDate": "2022-12-25", "endDate": "2023-01-05", "car": 1, "numberCar": "CA 117 A 70"},
+        {"id": 24, "username": "Максим Григорьев", "status": "В обработке", "adminName": null, "desc": "Заявка на обучение новых сотрудников", "beginDate": "2023-02-15", "endDate": "2023-02-17", "car": 0, "numberCar": "CA 117 A 70"},
+        {"id":3,"username":"Иванов Иван Иванович","status":"В обработке","adminName":null,"desc":"Заявка на предоставление автомобиля","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 111 B 111"},
+        {"id":5,"username":"Иванов Иван Иванович","status":"Отклонен","adminName":"Иванов Иван Иванович","desc":"Прошу предоставить автомобиль для деловой поездки","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":6,"username":"Иванов Иван Иванович","status":"Одобрен","adminName":"Иванов Иван Иванович","desc":"Прошу предоставить автомобиль для поездки на конференцию","beginDate":"2022-01-21","endDate":"2022-02-22","car":1,"numberCar":"AA 000 A 000"},
+        {"id":7,"username":"Иванов Иван Иванович","status":"В обработке","adminName":null,"desc":"Заявка на предоставление автомобиля","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 111 B 111"},
+        {"id":8,"username":"Смирнов Смир Смирнович","status":"Отклонен","adminName":"Козлов Козел Козлович","desc":"Прошу предоставить автомобиль для деловой поездки","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":9,"username":"Васильев Василий Васильевич","status":"Одобрен","adminName":"Козлов Козел Козлович","desc":"Прошу предоставить автомобиль для поездки на конференцию","beginDate":"2022-01-21","endDate":"2022-02-22","car":1,"numberCar":"AA 000 A 000"},
+        {"id":10,"username":"Елена Михайлова","status":"В обработке","adminName":null,"desc":"Заявка на предоставление автомобиля","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 111 B 111"},
+        {"id":11,"username":"Елена Михайлова","status":"Отклонен","adminName":"Николаев Николай Николаевич","desc":"Прошу предоставить автомобиль для деловой поездки","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":12,"username":"Елена Михайлова","status":"Одобрен","adminName":"Николаев Николай Николаевич","desc":"Прошу предоставить автомобиль для поездки на конференцию","beginDate":"2022-01-21","endDate":"2022-02-22","car":1,"numberCar":"AA 000 A 000"},
+        {"id":13,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"Заявка на предоставление автомобиля","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 111 B 111"}
+      ];
+      /*this.orders = [{"id":1,"username":"Александр Черепок","status":"В обработке","adminName":null,"desc":"АААААААААААААААА","beginDate":"2022-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},
+        {"id":2,"username":"Девяшин Егор Андреевич","status":"Отклонен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":4,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль для выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2021-01-21","endDate":"2022-02-22","car":3,"numberCar":"AA 000 A 000"},
+        {"id":5,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"TEXT TEXT TEXT","beginDate":"2021-01-21","endDate":"2022-02-22","car":0,"numberCar":"CA 117 A 70"},
+        {"id":6,"username":"Девяшин Егор Андреевич","status":"Одобрен","adminName":"Девяшин Егор Андреевич","desc":"Прошу предоставить корпоративный автомобиль дял выезда в командировку, в связи назначением генеральным директором приказом прибыть специалистам 24.05 в Минск","beginDate":"2022-01-21","endDate":"2022-02-22","car":2,"numberCar":"BB 685 A 70"},
+        {"id": 10, "username": "Елена Михайлова", "status": "В обработке", "adminName": null, "desc": "Заявка на участие в конференции", "beginDate": "2022-09-15", "endDate": "2022-09-17", "car": 0, "numberCar": "AA 000 A 000"},
+        {"id": 11, "username": "Александр Черепок", "status": "Отклонен", "adminName": "Ольга Кузнецова", "desc": "Заявка на изменение рабочего места", "beginDate": "2022-10-10", "endDate": "2022-10-31", "car": 0, "numberCar": "CA 117 A 70"},
+        {"id": 12, "username": "Максим Григорьев", "status": "Одобрен", "adminName": "Евгений Сидоров", "desc": "Заявка на отпуск на новогодние праздники", "beginDate": "2022-12-25", "endDate": "2023-01-05", "car": 1, "numberCar": "CA 117 A 70"},
+        {"id": 13, "username": "Максим Григорьев", "status": "В обработке", "adminName": null, "desc": "Заявка на обучение новых сотрудников", "beginDate": "2023-02-15", "endDate": "2023-02-17", "car": 0, "numberCar": "CA 117 A 70"}
+      ];*/
     },
 
     async createOrder() {
@@ -733,19 +784,6 @@ export default {
     transition: all .1s ease-in-out;
   }
 
-  li {
-    width: 200px;
-    height: 60px;
-
-    line-height: 50px;
-
-    font-size: 20px;
-    list-style-type: none;
-  }
-  li:hover {
-    background-color: #eeeeee;
-  }
-
   .mainWindow .info {
     width: 380px;
   }
@@ -767,7 +805,7 @@ export default {
     margin-bottom: 0px;
   }
 
-  table, tbody {
+  .calendar tbody {
     width: 570px;
 
     display: inline-block;
