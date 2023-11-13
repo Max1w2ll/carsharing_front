@@ -176,10 +176,6 @@ as of May 2020.
 	width: calc((700% / 7) - 0.75em);
 }
 
-.theme-gcal .cv-item.isHovered {
-	filter: brightness(95%);
-}
-
 .theme-gcal .cv-item.continued {
 	border-left-style: none;
 	border-top-left-radius: 0;

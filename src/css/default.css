@@ -11,7 +11,8 @@ having to override as much.
 
 .theme-default .cv-header,
 .theme-default .cv-header-day {
-	background-color: #f0f0f0;
+	background-color: var(--main-color);
+	color: var(--div-color);
 }
 
 .theme-default .cv-header .periodLabel {
@@ -19,12 +20,13 @@ having to override as much.
 }
 
 .theme-default .cv-header button {
-	color: #7f7f7f;
+	color: var(--main-color);
+	background-color: var(--div-color);
 }
 
 .theme-default .cv-header button:disabled {
 	color: #ccc;
-	background-color: #f7f7f7;
+	background-color: var(--div-color);
 }
 
 /* Grid */
@@ -43,12 +45,12 @@ having to override as much.
 	transform: translate(-50%, -50%);
 }
 
-.theme-default .cv-day.past {
-	background-color: #fafafa;
+.theme-default .cv-day.past, .theme-default .cv-day.future {
+	background-color: var(--div-color);
 }
 
 .theme-default .cv-day.outsideOfMonth {
-	background-color: #f7f7f7;
+	background-color: var(--div-color);;
 }
 
 .theme-default .cv-day.today {
@@ -62,36 +64,25 @@ having to override as much.
 /* Events */
 
 .theme-default .cv-item {
-	border-color: #e0e0f0;
 	border-radius: 0.5em;
-	background-color: #e7e7ff;
 	text-overflow: ellipsis;
 }
 
-.theme-default .cv-item.purple {
-	background-color: #f0e0ff;
-	border-color: #e7d7f7;
+
+.theme-default .cv-item.ready {
+	background-color: var(--ready-background);
+	border-color: var(--ready-border);
 }
 
-.theme-default .cv-item.orange {
-	background-color: #ffe7d0;
-	border-color: #f7e0c7;
-}
-
-.theme-default .cv-item.continued::before,
-.theme-default .cv-item.toBeContinued::after {
-	content: " \21e2 ";
-	color: #999;
+.theme-default .cv-item.wait {
+	background-color: var(--wait-background);
+	border-color: var(--wait-border);
 }
 
 .theme-default .cv-item.toBeContinued {
 	border-right-style: none;
 	border-top-right-radius: 0;
 	border-bottom-right-radius: 0;
-}
-
-.theme-default .cv-item.isHovered.hasUrl {
-	text-decoration: underline;
 }
 
 .theme-default .cv-item.continued {
