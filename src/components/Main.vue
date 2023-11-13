@@ -1,6 +1,6 @@
 <template>
   <div>
-    <CreateOrderDialog  :data="orders"  v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
+    <CreateOrderDialog :data="orders" v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
   </div>
   <div>
     <div class="header">
@@ -21,35 +21,30 @@
     <div class="mainWindow">
       <div class="history">
         <p> ИСТОРИЯ </p>
-
-        <button class="createOrder" @click.prevent="openCreateOrderDialog"> заказ</button>
-
         <div class="orderList">
           <div class="order" v-for="order in orders" :key="order.id">
-               <div class="header">
-                   <p class="status">{{ order.status }}</p>
-                   <p class="autoId">{{ order.numberCar }}</p>
-               </div>
-               <div class="body">
-                   <div class="username">{{ order.username }}</div>
-                   <div class="dates">{{ formatDate(order.beginDate) }} - {{ formatDate(order.endDate) }}</div>
-               </div>
-           </div>
+            <div class="header">
+              <p class="status">{{ order.status }}</p>
+              <p class="autoId">{{ order.numberCar }}</p>
+            </div>
+            <div class="body">
+              <div class="username"> {{ order.username }}</div>
+              <div class="dates"> {{ formatDate(order.beginDate) }} - {{ formatDate(order.endDate) }}</div>
+            </div>
+          </div>
           <div class="noOrders" v-if="orders.length == 0">
             <img src="../assets/icons/noOrders.png" width="74" height="74"> 
             <p> Заказов нет! </p>
             <p> Cоздайте новый по кнопке ниже </p>
           </div>
         </div>
-
-        <button class="createOrder" @click.prevent="createOrder()"> Новый заказ </button> 
-
+        <button class="createOrder" @click.prevent="openCreateOrderDialog"> Отчёты </button>
       </div>
 
       <div class="availableCars">
         <p> ДОСТУПНЫЕ МАШИНЫ </p>
         <div class="carList">
-          <div class="car" v-for="car in cars" :key="car.id">
+          <div class="car" v-for="car in cars" :key="car.id" @click="selectCar(car)">
             <div class="header">
               <p class="name">{{ car.name }}</p>
               <p class="carId">{{ car.number }}</p>
@@ -63,16 +58,23 @@
 
       <div class="info">
         <p> ИНФОРМАЦИЯ </p>
-
-        <p class="selectedCar"> Выбранная машина: </p>
+        <p class="author"> Автор заявки: {{ userInfo }} </p>
+        <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
+        <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
         <p class="dateRent"> Дата арендования: </p>
         <div class="dateSettings">
-          <tr> <td> От: </td><td><input id="settingDateFrom" type="date"></td></tr>
-          <tr> <td> До: </td><td><input id="settingDateTo" type="date"></td></tr>
+          <tr> 
+            <td> Начало аренды: </td> 
+            <td> <input id="settingDateFrom" type="date"> </td> 
+          </tr>
+          <tr> 
+            <td> Конец аренды: </td> 
+            <td> <input id="settingDateTo" type="date"> </td> 
+          </tr>
         </div>
-
-
-
+        <p class="description"> Описание заявки </p>
+        <input>
+        <button class="createOrder" @click.prevent="createOrder()"> Новый заказ </button> 
       </div>
 
       <div class="calendar">
@@ -164,17 +166,16 @@ export default {
     CreateOrderDialog,
     VueSelect
   },
-  methods: {
-    setShowDate(d) {
-      this.showDate = d;
-    },
-  },
 
   data() {
     return {
         showCreateOrderDialog: false,
-        USER_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/checkjwt',
-        user: () => [],
+
+        USER_JWT_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/checkjwt',
+        userJWT: () => [],
+
+        USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
+        userInfo: () => [],
 
         AUTH_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/ldapauth',
 
@@ -182,6 +183,8 @@ export default {
         cars: () => [],
 
         ORDERS_POST: 'https://portal.npf-isb.ru//carsharing/api/orders/create',
+
+        selectedCar: '',
         orderInfo: {
           car: 0,
           desc: "Тестовое описание",
@@ -196,6 +199,9 @@ export default {
   },
 
   methods: {
+    setShowDate(d) {
+      this.showDate = d;
+    },
 
     openCreateOrderDialog() {
       this.showCreateOrderDialog = true;
@@ -209,15 +215,23 @@ export default {
       return new Date(date).toLocaleDateString('ru-RU', options);
     },
     
-    getUser() {
-      axios.get(this.USER_GET, { withCredentials: true })
+    getUserJWT() {
+      axios.get(this.USER_JWT_GET, { withCredentials: true })
       .then((res) => {
-          this.user = res.data
-          console.log(this.user);
+        this.userJWT = res.data;
+        console.log(this.userJWT);
       },
       () => {
         this.createAuthWindow();
       });
+    },
+
+    getUserInfo() {
+      axios.get(this.USER_INFO_GET, { withCredentials: true })
+      .then((res) => {
+        this.userInfo = res.data;
+        console.log(this.userInfo);
+      })
     },
 
     createAuthWindow() {
@@ -297,6 +311,11 @@ export default {
       })
     },
 
+    selectCar(car) {
+      console.log(car);
+      this.selectedCar = car;
+    },
+
     getCars() {
       axios.get(this.CAR_GET, { withCredentials: true })
       .then((res) => {
@@ -357,12 +376,12 @@ export default {
 
     async createOrder() {
       try {
-          await axios.post(this.ORDERS_POST, this.orderInfo, { withCredentials: true })
-          .then((res) => {
-              console.log(res);
-              ModalWindows.showModal("Заказ создан!", true);
-              this.getOrders();
-          });
+        await axios.post(this.ORDERS_POST, this.orderInfo, { withCredentials: true })
+        .then((res) => {
+          console.log(res);
+          ModalWindows.showModal("Заказ создан!", true);
+          this.getOrders();
+        });
       }
       catch (e) {
         console.log(e);
@@ -374,562 +393,571 @@ export default {
 
   mounted() {
     setTimeout(() => {
-        this.getCars();
-        this.getOrders();
+      this.getUserJWT();
+      this.getUserInfo();
+      this.getCars();
+      this.getOrders();
     }, 100);
   }
 }
 </script>
 
 <style>
-  /* Auth window */
-  @font-face {
-    font-family: "Roboto";
-    src: url("../assets/fonts/roboto/Roboto-Regular.ttf");
-  }
+/* Auth window */
+@font-face {
+  font-family: "Roboto";
+  src: url("../assets/fonts/roboto/Roboto-Regular.ttf");
+}
 
-  :root {
-    --main-font: "Open Sans", "Segoe UI", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;;
-    --text-color: #ffffff;
-    --text-color-hover: #d2d2d2;
-    --text-color-active: #999999;
+:root {
+  --main-font: "Open Sans", "Segoe UI", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;;
+  --text-color: #ffffff;
+  --text-color-hover: #d2d2d2;
+  --text-color-active: #999999;
 
-    --button-idle: #456ead;
-    --button-hover: #405c91;
-    --button-active: #7d98c9;
+  --button-idle: #456ead;
+  --button-hover: #405c91;
+  --button-active: #7d98c9;
 
-    --main-color: #2767c9;
-    --sub-color: #2767c9;
-    --main-background: #f1f8ff;
-    --sub-background: #182D57;
+  --main-color: #2767c9;
+  --sub-color: #2767c9;
+  --main-background: #f1f8ff;
+  --sub-background: #182D57;
 
-    --left-side-background: #f1f8ff;
-    --left-side-scrollbar-track: #d3e0ed;
-    --left-side-scrollbar-thumb: #2767c9;
+  --left-side-background: #f1f8ff;
+  --left-side-scrollbar-track: #d3e0ed;
+  --left-side-scrollbar-thumb: #2767c9;
 
-    --deleteButton-background: #f44336;
+  --deleteButton-background: #f44336;
 
-    --success-background: #429974;
-    --error-background: #f44336;
-  }
+  --success-background: #429974;
+  --error-background: #f44336;
+}
 
-  body {
-    margin: 0;
+body {
+  margin: 0;
 
-    overflow-y: hidden;
-    overflow-x: hidden;
+  overflow-y: hidden;
+  overflow-x: hidden;
 
-    background: var(--main-background);
-  }
+  background: var(--main-background);
+}
 
-  #app {
-    font-family: 'Avenir', Helvetica, Arial, sans-serif;
-    color: #2c3e50;
-    height: 67vh;
-  }
+#app {
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  color: #2c3e50;
+  height: 67vh;
+}
 
-  .darkLayer {
-    position: fixed;
-    left: 0;
-    top: 0;
+.darkLayer {
+  position: fixed;
+  left: 0;
+  top: 0;
+
+  display: flex;
+  align-items: center;
+
+  height: 100%;
+  width: 100%;
+  z-index: 2;
+
+  background-color: var(--main-background);
+}
+
+.authSection {
+  margin: auto;
+  padding: 32px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  height: 434px;
+  width: 334px;
+
+  border: 1px solid var(--main-color);
+
+  justify-content: start;
+  background-color: #fff;
+}
+
+.authSection .userIcon {
+  margin: 0 0 32px;
+
+  height: 160px;
+  width: 200px;
+}
+
+.authSection p {
+  font-family: var(--main-font);
+
+  color: var(--main-color);
+}
+
+.authSection .title {
+  margin-top: 0;
+
+  font-size: 25px;
+  margin-bottom: 32px;
+
+  text-transform: uppercase;
+}
+
+.authSection .description {
+  margin: 20px auto;
+
+  width: 250px;
+
+  line-height: 22px;
+
+  font-size: 14px;
+}
+
+.authSection .inputsForm {
+  height: 200px;
+  width: -webkit-fill-available;
+}
+
+.authSection .inputsForm input {
+  padding: 15px 0 4px 8px;
+
+  outline: none;
+  border: none;
+
+  width: 280px;
+
+  font-family: var(--main-font);
+  font-size: 17px;
+
+  color: var(--main-color);
+  background: transparent;
+}
+
+.authSection .inputsForm label {
+  margin-left: 7px;
+
+  position: absolute;
+
+  font-family: var(--main-font);
+
+  opacity: 0.7;
+  color: var(--main-color);
+
+  font-size: 13px;
+}
+
+.authSection .inputsForm .usernameIcon {
+  margin-left: 11px;
+
+  transform: translateY(1px);
+
+  height: 22px;
+  width: 20px;
+}
+
+.authSection .inputsForm .passwordIcon {
+  margin-left: 13px;
+
+  height: 20px;
+  width: 16px;
+}
+
+.usernameSection {
+  margin-bottom: 8px;
+
+  height: 46px;
+
+  border: 1px solid var(--main-color);
+}
+.passwordSection {
+  margin-bottom: 8px;
+
+  height: 46px;
+
+  border: 1px solid var(--main-color);
+}
+
+.authSection .inputsForm button {
+  align-items: center;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+
+  height: 40px;
+  width: 100%;
+
+  background-color: var(--main-color);
+  color: var(--text-color);
+
+  border: none;
+
+  transition: all 0.01s ease-in-out 0s;
+}
+
+/* Auth window END */
+
+/*-------*/
+/* Other */
+/*-------*/
+
+.modalWindow {
+    right: 16px;
+    top: 16px;
+
+    padding: 8px;
 
     display: flex;
     align-items: center;
-
-    height: 100%;
-    width: 100%;
-    z-index: 2;
-
-    background-color: var(--main-background);
-  }
-
-  .authSection {
-    margin: auto;
-    padding: 32px;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    height: 434px;
-    width: 334px;
-
-    border: 1px solid var(--main-color);
-
-    justify-content: start;
-    background-color: #fff;
-  }
-
-  .authSection .userIcon {
-    margin: 0 0 32px;
-
-    height: 160px;
-    width: 200px;
-  }
-
-  .authSection p {
-    font-family: var(--main-font);
-
-    color: var(--main-color);
-  }
-
-  .authSection .title {
-    margin-top: 0;
-
-    font-size: 25px;
-    margin-bottom: 32px;
-
-    text-transform: uppercase;
-  }
-
-  .authSection .description {
-    margin: 20px auto;
-
-    width: 250px;
-
-    line-height: 22px;
-
-    font-size: 14px;
-  }
-
-  .authSection .inputsForm {
-    height: 200px;
-    width: -webkit-fill-available;
-  }
-
-  .authSection .inputsForm input {
-    padding: 15px 0 4px 8px;
-
-    outline: none;
-    border: none;
-
-    width: 280px;
-
-    font-family: var(--main-font);
-    font-size: 17px;
-
-    color: var(--main-color);
-    background: transparent;
-  }
-
-  .authSection .inputsForm label {
-    margin-left: 7px;
-
+    justify-content: center;
     position: absolute;
 
-    font-family: var(--main-font);
-
-    opacity: 0.7;
-    color: var(--main-color);
-
-    font-size: 13px;
-  }
-
-  .authSection .inputsForm .usernameIcon {
-    margin-left: 11px;
-
-    transform: translateY(1px);
-
-    height: 22px;
-    width: 20px;
-  }
-
-  .authSection .inputsForm .passwordIcon {
-    margin-left: 13px;
-
-    height: 20px;
-    width: 16px;
-  }
-
-  .usernameSection {
-    margin-bottom: 8px;
-
-    height: 46px;
-
-    border: 1px solid var(--main-color);
-  }
-  .passwordSection {
-    margin-bottom: 8px;
-
-    height: 46px;
-
-    border: 1px solid var(--main-color);
-  }
-
-  .authSection .inputsForm button {
-    align-items: center;
-
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-
-    height: 40px;
-    width: 100%;
-
-    background-color: var(--main-color);
-    color: var(--text-color);
-
-    border: none;
-
-    transition: all 0.01s ease-in-out 0s;
-  }
-
-  /* Auth window END */
-
-  /*-------*/
-  /* Other */
-  /*-------*/
-
-  .modalWindow {
-      right: 16px;
-      top: 16px;
-
-      padding: 8px;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-
-      min-height: 48px;
-      width: 384px;
-
-      font-size: 17px;
-      font-family: var(--main-font);
-
-      color: var(--text-color);
-      opacity: 1;
-
-      z-index: 2000;
-
-      animation-duration: 0.3s;
-      animation-name: modalOpen
-  }
-  @keyframes modalOpen {
-      from {
-          opacity: 0;
-          transform: translateY(100%);
-      }
-      to {
-          opacity: 1;
-          transform: translateY(0%);
-      }
-  }
-
-  .modalWindow.remove {
-      opacity: 0;
-      animation-name: modalClose
-  }
-  @keyframes modalClose {
-      from {
-          opacity: 1;
-          transform: translateY(0%);
-      }
-      to {
-          opacity: 0;
-          transform: translateY(100%);
-      }
-  }
-
-  .modalWindow.Error {
-      background: var(--error-background);
-  }
-
-  .modalWindow.Success {
-      background: var(--success-background);
-  }
-
-  /* Other END */
-
-  :root {
-    --main-color: #2767c9;
-    --text-color: #ffffff;
-    --div-color: #ffffff;
-    --border-color: rgba(39, 103, 201, .2);
-  }
-
-  .header {
-    height: 32px;
-    width: 100%;
-
-    background: #2767c9;
-  }
-
-  .header .buttons {
-    display: flex;
-  }
-  .header .buttons a {
-    height: 32px;
-    width: 160px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    color: var(--text-color);
+    min-height: 48px;
+    width: 384px;
 
     font-size: 17px;
-    text-align: center;
+    font-family: var(--main-font);
 
-    cursor: pointer;
-  }
-  .header .buttons a:hover {
-    background-color: #f1f8ff;
-    color: #2767c9;
-    transition: all .1s ease-in-out;
-  }
+    color: var(--text-color);
+    opacity: 1;
 
-  .header .banner {
-    height: 80px;
+    z-index: 2000;
 
-    display: flex;
-    align-items: center;
-
-    background: var(--div-color);
-    border: 1px solid var(--border-color);
-  }
-  .header .banner a {
-    height: 79px;
-    width: 160px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .header .banner p {
-    font-size: 32px;
-    color: var(--main-color);
-  }
-
-  .mainWindow {
-    margin-top: 105px;
-
-    height: 750px;
-    width: 100%;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mainWindow .history, .mainWindow .availableCars, .mainWindow .info, .mainWindow .calendar {
-    padding-left: 32px;
-    margin: 10px;
-    height: 650px;
-    width: 300px;
-
-    font-size: 24px;
-    font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
-
-    color: var(--main-color);
-    background: var(--div-color);
-
-    border: 1px solid var(--border-color);
-  }
-
-  .mainWindow .availableCars {
-    width: 320px;
-  }
-
-  .mainWindow .availableCars .car, .mainWindow .history .date {
-    padding-bottom: 28px;
-
-    width: 270px;
-
-    line-height: 35px;
-
-    font-size: 20px;
-  }
-  .mainWindow .availableCars .car:hover, .mainWindow .orderList .order:hover,.mainWindow .history .date:hover {
-    background-color: #eeeeee;
-  }
-
-  .orderList, .carList {
-    padding-right: 15px;
-
-    height: 480px; 
-
-    overflow-x: clip;
-    overflow-y: scroll;
-  }
-  .ordersList::-webkit-scrollbar-track {
-        background-color: var(--left-side-scrollbar-track);
+    animation-duration: 0.3s;
+    animation-name: modalOpen
+}
+@keyframes modalOpen {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
     }
-  .ordersList::-webkit-scrollbar {
-      width: 10px;
+    to {
+        opacity: 1;
+        transform: translateY(0%);
+    }
+}
 
+.modalWindow.remove {
+    opacity: 0;
+    animation-name: modalClose
+}
+@keyframes modalClose {
+    from {
+        opacity: 1;
+        transform: translateY(0%);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+}
+
+.modalWindow.Error {
+    background: var(--error-background);
+}
+
+.modalWindow.Success {
+    background: var(--success-background);
+}
+
+/* Other END */
+
+:root {
+  --main-color: #2767c9;
+  --text-color: #ffffff;
+  --div-color: #ffffff;
+  --border-color: rgba(39, 103, 201, .2);
+}
+
+.header {
+  height: 32px;
+  width: 100%;
+
+  background: #2767c9;
+}
+
+.header .buttons {
+  display: flex;
+}
+.header .buttons a {
+  height: 32px;
+  width: 160px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--text-color);
+
+  font-size: 17px;
+  text-align: center;
+
+  cursor: pointer;
+}
+.header .buttons a:hover {
+  background-color: #f1f8ff;
+  color: #2767c9;
+  transition: all .1s ease-in-out;
+}
+
+.header .banner {
+  height: 80px;
+
+  display: flex;
+  align-items: center;
+
+  background: var(--div-color);
+  border: 1px solid var(--border-color);
+}
+.header .banner a {
+  height: 79px;
+  width: 160px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header .banner p {
+  font-size: 32px;
+  color: var(--main-color);
+}
+
+.mainWindow {
+  margin-top: 130px;
+
+  height: 750px;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mainWindow .history, .mainWindow .availableCars, .mainWindow .info, .mainWindow .calendar {
+  padding-left: 32px;
+  margin: 10px;
+  height: 820px;
+  width: 300px;
+
+  font-size: 24px;
+  font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+
+  color: var(--main-color);
+  background: var(--div-color);
+
+  border: 1px solid var(--border-color);
+}
+
+.mainWindow .availableCars {
+  width: 320px;
+}
+
+.mainWindow .availableCars .car, .mainWindow .history .date {
+  padding-bottom: 20px;
+
+  width: 270px;
+
+  line-height: 35px;
+
+  font-size: 20px;
+}
+.mainWindow .availableCars .car:hover, .mainWindow .orderList .order:hover,.mainWindow .history .date:hover {
+  background-color: #eeeeee;
+}
+
+.orderList, .carList {
+  padding-right: 15px;
+
+  height: 650px; 
+
+  overflow-x: clip;
+  overflow-y: scroll;
+}
+.carList {
+  height: 740px;
+}
+.ordersList::-webkit-scrollbar-track {
       background-color: var(--left-side-scrollbar-track);
   }
-  .ordersList::-webkit-scrollbar-thumb {
-      background-color: var(--left-side-scrollbar-thumb);
-  }
+.ordersList::-webkit-scrollbar {
+    width: 10px;
 
-  .createOrder {
-    margin-top: 20px;
+    background-color: var(--left-side-scrollbar-track);
+}
+.ordersList::-webkit-scrollbar-thumb {
+    background-color: var(--left-side-scrollbar-thumb);
+}
 
-    height: 40px;
-    width: 275px;
+.createOrder {
+  margin-top: 20px;
 
-    color: var(--main-color);
-    background: none;
+  height: 40px;
+  width: 275px;
 
-    border: 1px solid var(--main-color);
+  color: var(--main-color);
+  background: none;
 
-    font-family: sans-serif;
+  border: 1px solid var(--main-color);
 
-    cursor: pointer;
-  }
-  .createOrder:hover {
-    color: var(--text-color);
-    background: var(--main-color);
+  font-family: sans-serif;
 
-    transition: all .1s ease-in-out;
-  }
+  cursor: pointer;
+}
+.createOrder:hover {
+  color: var(--text-color);
+  background: var(--main-color);
 
-  .mainWindow .info {
-    width: 380px;
-  }
+  transition: all .1s ease-in-out;
+}
 
-  .mainWindow .info .selectedCar, .mainWindow .info .dateRent, .mainWindow .info .dateSettings {
-    font-size: 18px;
-  }
+.mainWindow .info {
+  width: 440px;
+}
 
-  .mainWindow .info .dateSettings {
-    display: inline-grid;
-  }
+.author, .selectedCar, .dateRent, .dateSettings, .carNumber, .description {
+  font-size: 18px;
+}
+
+.mainWindow .info .dateSettings {
+  display: inline-grid;
+}
+
+.dateSettings input {
+  margin-bottom: 15px;
+}
+
+.mainWindow .calendar {
+  width: 600px;
+}
+
+.mainWindow .calendar p {
+  margin-bottom: 0px;
+}
+
+.calendar tbody {
+  width: 570px;
+
+  display: inline-block;
+
+  text-align: center;
+  font-size: 18px;
+}
+
+th {
+  height: 40px;
+  width: 200px;
+}
+
+td {
+  height: 70px;
+
+  border: 1px solid #7d98c9;
+}
+
+td:hover {
+  background-color: #eeeeee;
+}
 
 
-  .mainWindow .calendar {
-    width: 600px;
-  }
+.order, .car {
+  padding: 10px;
+  margin-bottom: 10px;
 
-  .mainWindow .calendar p {
-    margin-bottom: 0px;
-  }
+  max-height: 90px;
 
-  .calendar tbody {
-    width: 570px;
+  display: flex;
+  flex-direction: column;
 
-    display: inline-block;
+  border: 1px solid var(--sub-color);
+}
 
-    text-align: center;
-    font-size: 18px;
-  }
+.order .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  color: var(--text-color);
+  background: var(--sub-color);
+}
 
-  th {
-    height: 40px;
-    width: 200px;
-  }
+.order .body {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  font-family: var(--main-font);
+  font-size: 15px;
+}
 
-  td {
-    height: 70px;
-  }
+.order .header p {
+  margin: 0;
+  font-family: var(--main-font);
+  font-size: 14px;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  td:hover {
-    background-color: #eeeeee;
-  }
+.order .header .autoId {
+  text-align: right;
+}
 
+.order .body .username {
+  font-weight: bold;
+}
 
-  .order {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    border: 1px solid var(--sub-color);
-    margin-bottom: 10px;
-  }
+.order .body .dates {
+  font-size: 14px;
+}
 
-  .order .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 40px;
-    color: var(--text-color);
-    background: var(--sub-color);
-  }
+.carList {
+  margin-top: 10px;
 
-  .order .body {
-    display: flex;
-    flex-direction: column;
-    margin-top: 10px;
-    font-family: var(--main-font);
-    font-size: 15px;
-  }
+  overflow-y: scroll;
 
-  .order .header p {
-    margin: 0;
-    font-family: var(--main-font);
-    font-size: 14px;
-    padding: 0 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  display: flex;
+  flex-direction: column;
 
-  .order .header .autoId {
-    text-align: right;
-  }
+  font-family: var(--main-font);
+  font-size: 15px;
+}
 
-  .order .body .username {
-    font-weight: bold;
-  }
+.car .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  color: var(--text-color);
+  background: var(--sub-color);
+}
 
-  .order .body .dates {
-    font-size: 14px;
-  }
+.car .body {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  font-family: var(--main-font);
+  font-size: 15px;
+}
 
-  .carList {
-    margin-top: 10px;
+.car .body .description {
+  max-height: 62px;
+  overflow-y: clip;
 
-    overflow-y: scroll;
+  line-height: 1.2;
+}
 
-    display: flex;
-    flex-direction: column;
+.car .header p {
+  margin: 0;
+  font-family: var(--main-font);
+  font-size: 14px;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-    font-family: var(--main-font);
-    font-size: 15px;
-  }
-
-  .car {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    border: 1px solid var(--sub-color);
-    margin-bottom: 10px;
-  }
-
-  .car .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 40px;
-    color: var(--text-color);
-    background: var(--sub-color);
-  }
-
-  .car .body {
-    display: flex;
-    flex-direction: column;
-    margin-top: 10px;
-    font-family: var(--main-font);
-    font-size: 15px;
-  }
-
-  .car .body .description {
-    line-height: 1.2;
-  }
-
-  .car .header p {
-    margin: 0;
-    font-family: var(--main-font);
-    font-size: 14px;
-    padding: 0 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .car .header .carId {
-    text-align: right;
-  }
+.car .header .carId {
+  text-align: right;
+}
 
 </style>
