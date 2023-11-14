@@ -41,21 +41,6 @@
         <button class="createOrder" @click.prevent="openCreateOrderDialog"> Отчёты </button>
       </div>
 
-      <div class="availableCars">
-        <p> ДОСТУПНЫЕ МАШИНЫ </p>
-        <div class="carList">
-          <div class="car" v-for="car in cars" :key="car.id" @click="selectCar(car)">
-            <div class="header">
-              <p class="name">{{ car.name }}</p>
-              <p class="carId">{{ car.number }}</p>
-            </div>
-            <div class="body">
-              <div class="description">{{ car.desc }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="info">
         <p> ИНФОРМАЦИЯ </p>
         <p class="author"> Автор заявки: {{ userInfo }} </p>
@@ -78,11 +63,26 @@
       </div>
 
       <div class="lastPanel">
+        <div class="availableCars">
+        <p> ДОСТУПНЫЕ МАШИНЫ </p>
+          <div class="carList">
+            <div class="car" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'selected': car.id === selectedCar.id }">
+              <div class="header">
+                <p class="name">{{ car.name }}</p>
+                <p class="carId">{{ car.number }}</p>
+              </div>
+              <div class="">
+                <div class="description">{{ car.desc }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="calendar">
           <calendar-view
             :show-date="showDate"
             :startingDayOfWeek="1"
             :items="items"
+            @show-date-change="changePlan"
             class="theme-default">
             <template #header="{ headerProps }">
               <calendar-view-header
@@ -148,26 +148,26 @@ export default {
 
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
         orders: () => [],
-			items: [
-				/*{
-					id: "e0",
-					startDate: "2018-01-05",
-				},*/
-				{
-					id: "e1",
-					startDate: '2023-11-13',
-					endDate: '2023-11-20',
-					classes: ['ready'],
-				},
-				{
-					id: "e2",
-					startDate: this.thisMonth(16, 18, 30),
-					endDate: this.thisMonth(22, 18, 30),
-					title: "Same day 6",
-					classes: ['wait'],
-					tooltip: "This spans multiple days\n asdasdasd\n234325343546",
-				}
-      ],
+        items: [
+          /*{
+            id: "e0",
+            startDate: "2018-01-05",
+          },*/
+          {
+            id: "e1",
+            startDate: '2023-11-13',
+            endDate: '2023-11-20',
+            classes: ['ready'],
+          },
+          {
+            id: "e2",
+            startDate: this.thisMonth(16, 18, 30),
+            endDate: this.thisMonth(22, 18, 30),
+            title: "Same day 6",
+            classes: ['wait'],
+            tooltip: "This spans multiple days\n asdasdasd\n234325343546",
+          }
+        ],
     }
   },
 
@@ -176,13 +176,23 @@ export default {
 			const t = new Date()
 			return new Date(t.getFullYear(), t.getMonth(), d, h || 0, m || 0)
 		},
+
     setShowDate(d) {
       this.showDate = d;
+    },
+
+    changePlan(d) {
+      this.showDate = d;
+    },
+
+    getPlanCalendar(date, car) {
+
     },
 
     openCreateOrderDialog() {
       this.showCreateOrderDialog = true;
     },
+
     closeCreateOrderDialog() {
       this.showCreateOrderDialog = false;
     },
@@ -300,6 +310,9 @@ export default {
           console.log(this.cars);
       });
       this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
+      if (this.cars && this.cars[0])  {
+        this.selectCar(this.cars[0]);
+      }
     },
 
     getOrders() {
@@ -673,11 +686,9 @@ body {
   justify-content: center;
 }
 
-.mainWindow .history, .mainWindow .info {
+.mainWindow .history, .mainWindow .info, .mainWindow .lastPanel {
   padding-left: 32px;
   margin: 10px;
-  height: 820px;
-  width: 300px;
 
   font-size: 24px;
   font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
@@ -688,20 +699,43 @@ body {
   border: 1px solid var(--border-color);
 }
 
-.mainWindow .calendar {
+.mainWindow .history, .mainWindow .info {
+  height: 820px;
+  width: 20%;
+}
+
+.mainWindow .info {
+  width: 25%;
+}
+
+.mainWindow .lastPanel {
+  width: 49%;
+}
+
+.mainWindow .lastPanel .calendar {
+  margin: 15px;
+  margin-right: 32px;
+  margin-left: 0;
   height: 550px;
-  font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+  font-size: 19px;
 }
 
 .mainWindow .availableCars .car, .mainWindow .history .date {
   padding-bottom: 20px;
 
   width: 270px;
+  min-width: 270px;
+  max-width: 270px;
 
   line-height: 35px;
 
   font-size: 20px;
 }
+
+.mainWindow .availableCars .car {
+  margin: 10px;
+}
+
 .mainWindow .availableCars .car:hover, .mainWindow .orderList .order:hover,.mainWindow .history .date:hover {
   background-color: #eeeeee;
 }
@@ -742,15 +776,12 @@ body {
 
   cursor: pointer;
 }
+
 .createOrder:hover {
   color: var(--text-color);
   background: var(--main-color);
 
   transition: all .1s ease-in-out;
-}
-
-.mainWindow .info {
-  width: 440px;
 }
 
 .author, .selectedCar, .dateRent, .dateSettings, .carNumber, .description {
@@ -764,39 +795,6 @@ body {
 .dateSettings input {
   margin-bottom: 15px;
 }
-
-.mainWindow .calendar {
-  width: 600px;
-}
-
-.mainWindow .calendar p {
-  margin-bottom: 0px;
-}
-
-.calendar tbody {
-  width: 570px;
-
-  display: inline-block;
-
-  text-align: center;
-  font-size: 18px;
-}
-
-th {
-  height: 40px;
-  width: 200px;
-}
-
-td {
-  height: 70px;
-
-  border: 1px solid #7d98c9;
-}
-
-td:hover {
-  background-color: #eeeeee;
-}
-
 
 .order, .car {
   padding: 10px;
@@ -849,16 +847,22 @@ td:hover {
   font-size: 14px;
 }
 
-.carList {
+.lastPanel .carList {
   margin-top: 10px;
+  margin-bottom: 10px;
+  margin-right: 32px;
 
-  overflow-y: scroll;
+  overflow-x: scroll;
 
   display: flex;
-  flex-direction: column;
 
   font-family: var(--main-font);
   font-size: 15px;
+  border: 1px solid var(--border-color);
+}
+
+.carList .selected {
+  background-color: var(--text-color-hover);
 }
 
 .car .header {
@@ -878,11 +882,17 @@ td:hover {
   font-size: 15px;
 }
 
-.car .body .description {
-  max-height: 62px;
-  overflow-y: clip;
-
-  line-height: 1.2;
+.car .description {
+  margin-top: 10px;
+  height: 55px;
+  line-height: 1em;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  vertical-align: middle; text-align: left;
 }
 
 .car .header p {
@@ -897,6 +907,11 @@ td:hover {
 
 .car .header .carId {
   text-align: right;
+}
+
+.lastPanel {
+  width: 40%;
+  background-color: var(--div-color);
 }
 
 </style>
