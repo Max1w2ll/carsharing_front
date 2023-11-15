@@ -81,8 +81,7 @@
           <calendar-view
             :show-date="showDate"
             :startingDayOfWeek="1"
-            :items="items"
-            @show-date-change="changePlan"
+            :items="currentPlan"
             class="theme-default">
             <template #header="{ headerProps }">
               <calendar-view-header
@@ -109,7 +108,6 @@ import { CalendarView, CalendarViewHeader } from "vue-simple-calendar"
 
 import "@/css/style-calendar.css"
 import "@/css/default.css"
-import "vue-simple-calendar/dist/css/holidays-us.css"
 
 export default {
   name: 'Main',
@@ -135,6 +133,8 @@ export default {
         CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/all',
         cars: () => [],
 
+        CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/in-month',
+
         ORDERS_POST: 'https://portal.npf-isb.ru//carsharing/api/orders/create',
 
         selectedCar: '',
@@ -148,26 +148,8 @@ export default {
 
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
         orders: () => [],
-        items: [
-          /*{
-            id: "e0",
-            startDate: "2018-01-05",
-          },*/
-          {
-            id: "e1",
-            startDate: '2023-11-13',
-            endDate: '2023-11-20',
-            classes: ['ready'],
-          },
-          {
-            id: "e2",
-            startDate: this.thisMonth(16, 18, 30),
-            endDate: this.thisMonth(22, 18, 30),
-            title: "Same day 6",
-            classes: ['wait'],
-            tooltip: "This spans multiple days\n asdasdasd\n234325343546",
-          }
-        ],
+        currentPlan: [],
+        carPlans: [{id: null, plan: [{}]}],
     }
   },
 
@@ -181,12 +163,36 @@ export default {
       this.showDate = d;
     },
 
-    changePlan(d) {
-      this.showDate = d;
+    updatePlanCarCalendar(carId) {
+      
+      axios.get(this.CAR_PLAN_GET + `/${carId}`, { withCredentials: true })
+      .then((res) => {
+        const findPlan = this.carPlans.filter(it => it.id == carId);
+        if (findPlan.length > 0){
+          findPlan[0].plan = res;
+        } else {
+          this.carPlans.push({id: carId, res})
+        }
+      })/*
+      const findPlan = this.carPlans.filter(it => it.id == carId);
+      if (findPlan.length > 0){
+        findPlan[0].plan = this.items;
+      } else {
+        this.carPlans.push({id: carId, plan: this.items})
+      }
+      */
     },
 
-    getPlanCalendar(date, car) {
-
+    setInCalendarPlanCar(carId) {
+        if (this.carPlans) {
+          const findPlan = this.carPlans.filter(it => it.id == carId);
+          if (findPlan.length > 0) {
+            this.currentPlan = findPlan[0].plan;
+            return;
+          }
+        }
+        this.updatePlanCarCalendar(carId);
+        this.setInCalendarPlanCar(carId);
     },
 
     openCreateOrderDialog() {
@@ -299,8 +305,8 @@ export default {
     },
 
     selectCar(car) {
-      console.log(car);
       this.selectedCar = car;
+      this.setInCalendarPlanCar(car.id);
     },
 
     getCars() {
@@ -309,7 +315,7 @@ export default {
           this.cars = res.data
           console.log(this.cars);
       });
-      this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
+      //this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
       if (this.cars && this.cars[0])  {
         this.selectCar(this.cars[0]);
       }
@@ -342,7 +348,7 @@ export default {
 
   mounted() {
     setTimeout(() => {
-      //this.getUserJWT();
+      this.getUserJWT();
       this.getUserInfo();
       this.getCars();
       this.getOrders();
@@ -379,8 +385,8 @@ export default {
 
   --deleteButton-background: #f44336;
 
-  --wait-border: #867e3a;
-  --wait-background: #989942;
+  --wait-border: #bbb04d;
+  --wait-background: #e7e7587e;
   --ready-border: #57be68;
   --ready-background: #81faa075;
   --success-background: #429974;

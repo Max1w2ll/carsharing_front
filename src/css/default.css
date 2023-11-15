@@ -64,6 +64,7 @@ having to override as much.
 /* Events */
 
 .theme-default .cv-item {
+	font-size: 12px;
 	border-radius: 0.5em;
 	text-overflow: ellipsis;
 }
