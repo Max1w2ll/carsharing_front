@@ -122,13 +122,13 @@ export default {
     return {
         showCreateOrderDialog: false,
 
-        USER_JWT_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/checkjwt',
+        USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
         userJWT: () => [],
 
         USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
         userInfo: () => [],
 
-        AUTH_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/ldapauth',
+        AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
         CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/all',
         cars: () => [],
