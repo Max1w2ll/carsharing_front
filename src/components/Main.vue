@@ -1,8 +1,5 @@
 <template>
   <div>
-    <CreateOrderDialog :data="orders" v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
-  </div>
-  <div>
     <div class="header">
       <div class="buttons">
         <a> Главная </a>
@@ -93,6 +90,9 @@
       </div>
     </div>
   </div>
+  <div>
+    <CreateOrderDialog :data="orders" v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
+  </div>
 </template>
 
 <script>
@@ -164,15 +164,15 @@ export default {
     },
 
     updatePlanCarCalendar(carId) {
-      
       axios.get(this.CAR_PLAN_GET + `/${carId}`, { withCredentials: true })
       .then((res) => {
         const findPlan = this.carPlans.filter(it => it.id == carId);
         if (findPlan.length > 0){
           findPlan[0].plan = res;
         } else {
-          this.carPlans.push({id: carId, res})
+          this.carPlans.push({id: carId, plan: res})
         }
+        this.setInCalendarPlanCar(carId);
       })/*
       const findPlan = this.carPlans.filter(it => it.id == carId);
       if (findPlan.length > 0){
@@ -189,10 +189,10 @@ export default {
           if (findPlan.length > 0) {
             this.currentPlan = findPlan[0].plan;
             return;
+          } else {
+            this.updatePlanCarCalendar(carId);
           }
         }
-        this.updatePlanCarCalendar(carId);
-        this.setInCalendarPlanCar(carId);
     },
 
     openCreateOrderDialog() {
@@ -314,11 +314,11 @@ export default {
       .then((res) => {
           this.cars = res.data
           console.log(this.cars);
+          if (this.cars && this.cars[0])  {
+            this.selectCar(this.cars[0]);
+          }
       });
       //this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
-      if (this.cars && this.cars[0])  {
-        this.selectCar(this.cars[0]);
-      }
     },
 
     getOrders() {
