@@ -130,10 +130,10 @@ export default {
 
         AUTH_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/ldapauth',
 
-        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/all',
+        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/all',
         cars: () => [],
 
-        CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/in-month',
+        CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
 
         ORDERS_POST: 'https://portal.npf-isb.ru//carsharing/api/orders/create',
 
@@ -168,19 +168,12 @@ export default {
       .then((res) => {
         const findPlan = this.carPlans.filter(it => it.id == carId);
         if (findPlan.length > 0){
-          findPlan[0].plan = res.ordersPerMonth;
+          findPlan[0].plan = res.data.ordersPerMonth;
         } else {
-          this.carPlans.push({id: carId, plan: res.ordersPerMonth})
+          this.carPlans.push({id: carId, plan: res.data.ordersPerMonth})
         }
         this.setInCalendarPlanCar(carId);
-      })/*
-      const findPlan = this.carPlans.filter(it => it.id == carId);
-      if (findPlan.length > 0){
-        findPlan[0].plan = this.items;
-      } else {
-        this.carPlans.push({id: carId, plan: this.items})
-      }
-      */
+      })
     },
 
     setInCalendarPlanCar(carId) {
