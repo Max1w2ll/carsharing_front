@@ -141,8 +141,8 @@ export default {
         orderInfo: {
           car: 0,
           desc: "Тестовое описание",
-          beginDate: "2023-22-09",
-          endDate: "2023-23-09"
+          beginDate: "2023-11-22",
+          endDate: "2023-11-25"
         },
         showDate: new Date(),
 
@@ -168,9 +168,9 @@ export default {
       .then((res) => {
         const findPlan = this.carPlans.filter(it => it.id == carId);
         if (findPlan.length > 0){
-          findPlan[0].plan = res;
+          findPlan[0].plan = res.ordersPerMonth;
         } else {
-          this.carPlans.push({id: carId, plan: res})
+          this.carPlans.push({id: carId, plan: res.ordersPerMonth})
         }
         this.setInCalendarPlanCar(carId);
       })/*
