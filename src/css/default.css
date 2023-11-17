@@ -15,6 +15,10 @@ having to override as much.
 	color: var(--div-color);
 }
 
+.theme-default .cv-header {
+	font-size: 17px;
+}
+
 .theme-default .cv-header .periodLabel {
 	font-size: 1.5em;
 }
@@ -64,20 +68,22 @@ having to override as much.
 /* Events */
 
 .theme-default .cv-item {
-	font-size: 12px;
+	font-size: 14px;
+    margin-top: 7px;
 	border-radius: 0.5em;
 	text-overflow: ellipsis;
 }
 
 
 .theme-default .cv-item.ready {
-	background-color: var(--ready-background);
-	border-color: var(--ready-border);
+	color: var(--div-color);
+    background-color: var(--main-color);
+    border-color: var(--div-color);
 }
 
 .theme-default .cv-item.wait {
-	background-color: var(--wait-background);
-	border-color: var(--wait-border);
+	background-color: var(--div-color);
+    border-color: var(--main-color);
 }
 
 .theme-default .cv-item.toBeContinued {
