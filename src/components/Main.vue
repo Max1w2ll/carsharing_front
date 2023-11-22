@@ -4,7 +4,7 @@
 
     <div class="mainWindow">
       <div class="history">
-        <p> ИСТОРИЯ </p>
+        <div class="panel-header"> ИСТОРИЯ </div>
         <div class="orderList">
           <div class="order" @click="getOrder(order.id)" v-for="order in orders" :key="order.id">
             <div class="header">
@@ -26,8 +26,8 @@
       </div>
 
       <div class="info">
-        <p v-if="!editing"> НОВАЯ ЗАЯВКА </p>
-        <p v-if="editing"> ИНФОРМАЦИЯ </p>
+        <div class="panel-header" v-if="!editing"> НОВАЯ ЗАЯВКА </div>
+        <div class="panel-header" v-if="editing"> ИНФОРМАЦИЯ </div>
         <p class="author"> Автор заявки: {{ userInfo.displayName }} </p>
         <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
         <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
@@ -51,15 +51,25 @@
 
       <div class="lastPanel">
         <div class="availableCars">
-        <p> ДОСТУПНЫЕ МАШИНЫ </p>
-          <div class="carList">
-            <div class="car" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'selected': car.id === selectedCar.id }">
+        <div class="panel-header"> ДОСТУПНЫЕ МАШИНЫ </div>
+          <div class="carList" ref="carList" @wheel="scrollHorizontally">
+            <div class="car" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
               <div class="header">
-                <p class="name">{{ car.name }}</p>
-                <p class="carId">{{ car.number }}</p>
+                <input class="name" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
+                <input v-if="car.id !== -1" class="carNumber" v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :style="{ 'right: 0': !userIsAdmin() }"/>
+                <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" :class="{ 'closeCar': car.id === editingCar.id }" @click.prevent="shareCarPanel(car.id)"> ! </div> 
+                <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" @click.prevent="shareCarPanel(car.id)"> ! </div> 
               </div>
-              <div class="">
-                <div class="description">{{ car.desc }}</div>
+              <div class="body">
+                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" v-model="car.desc" />
+                <div v-if="car.id !== -1">
+                  <input type="checkbox" :id="'scales_' + car.id" class="custom-checkbox" :checked="intToBool(car.isShowInList)" @change="updateShowInList(car, $event.target.checked)">
+                  <label :for="'scales_' + car.id" class="checkbox-label">Показать в выдаче</label>
+                  <div style="display: flex">
+                    <button @click.prevent="saveCar(car)" class="save-car" :class="{ 'full-save-car': car.id === -2 }"> Сохранить </button> 
+                    <button v-if="car.id !== -2" @click.prevent="deleteCar(car)" class="delete-car" :class="{ 'ready-delete': readyForRemoveCar }"> 🗑️ </button> 
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -122,18 +132,21 @@ export default {
 
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
-        CARS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/all',
-        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/',
+        CARS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/all',
+        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/cars/',
+        CAR_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/',
+        CAR_POST: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/create',
+        CAR_PATCH: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/edit',
         cars: () => [],
 
         CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
 
-        ORDERS_POST: 'https://portal.npf-isb.ru//carsharing/api/orders/create',
+        ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/orders/create',
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
         ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
         orders: () => [],
 
-        selectedCar: null,
+        selectedCar: {},
         orderInfo: {
           car: null,
           desc: "Тестовое описание",
@@ -146,10 +159,118 @@ export default {
         carPlans: [{id: null, plan: [{}]}],
 
         editing: false,
+        editingCar: {},
+        emptyCar: {
+          desc: "",
+          id: -1,
+          isShowInList: 1,
+          name: "Новая машина",
+          number: ""
+        },
+        readyForRemoveCar: false,
     }
   },
 
   methods: {
+    userIsAdmin(){
+      return true //this.userInfo.role === "globaladmin";
+    },
+
+    updateShowInList(car, value) {
+      this.cars[this.cars.findIndex(it => it.id === car.id)].isShowInList = value ? 1 : 0;
+      console.log(car.id);
+      console.log(value);
+    },
+
+    intToBool(int) {
+      return int === 1;
+    },
+
+    shareCarPanel(carId) {
+      this.readyForRemoveCar = false;
+      if (this.editingCar.id === null || this.editingCar.id !== carId) {
+        this.shareCarPanel(this.editingCar.id);
+        this.editingCar = { ...this.cars.find(it => it.id === carId) };
+        if (carId === -2) {
+          const observer = new ResizeObserver(() => {
+            this.$refs.carList.scrollLeft += 1500;
+            observer.disconnect();
+          });
+          observer.observe(this.$refs.carList);
+        }
+      } else if (this.editingCar.id === carId) {
+        if (carId === -2) {
+          this.editingCar.id = -1;
+        }
+        console.log(this.editingCar);
+        this.cars[this.cars.findIndex(car => car.id === carId)] = { ...this.editingCar };
+        this.editingCar = {};
+      }
+    },
+    
+    scrollHorizontally(event) {
+      const delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
+      this.$refs.carList.scrollLeft -= delta * 40;
+      event.preventDefault();
+    },
+
+    saveCar(car) {      
+      try {
+        let carForSave;
+        const isEdit = car.id !== -2;
+        if (!isEdit) {
+          carForSave = {
+            name: car.name,
+            number: car.number,
+            isShowInList: car.isShowInList === 1,
+            desc: car.desc,
+          }
+          axios.post(this.CAR_POST, carForSave, { withCredentials: true })
+          .then((res) => {
+            this.cars[this.cars.findIndex(car => car.id === -2)] = { ...res.data };
+            ModalWindows.showModal('Создана машина ' + res.data.name, true);
+            this.doAfterSaveCar(isEdit);
+          });
+        } else {
+          carForSave = {
+            id: car.id,
+            name: car.name,
+            number: car.number,
+            isShowInList: car.isShowInList === 1,
+            desc: car.desc,
+          }
+          axios.patch(this.CAR_PATCH, carForSave, { withCredentials: true })
+          .then((res) => {
+            ModalWindows.showModal('Отредактирована машина ' + res.data.name, true);
+            this.doAfterSaveCar(isEdit);
+          });
+        }
+      }
+      catch (e) {
+        console.log(e);
+        ModalWindows.showModal(e.response.data.message, false);
+      }
+    },
+
+    deleteCar(car) {
+      if (this.readyForRemoveCar) {
+        axios.delete(this.CAR_DELETE + car.id, { withCredentials: true })
+        .then((res) => {
+          this.readyForRemoveCar = false;
+          ModalWindows.showModal('Удалена машина ' + car.name, false);
+          this.getCars();
+        })
+      }
+      this.readyForRemoveCar = true;
+    },
+
+    doAfterSaveCar(isEdit) {
+      this.editingCar = {};
+      if (!isEdit) {
+        this.cars.push({ ...this.emptyCar });
+      }
+    },
+
 		thisMonth(d, h, m) {
 			const t = new Date()
 			return new Date(t.getFullYear(), t.getMonth(), d, h || 0, m || 0)
@@ -294,20 +415,28 @@ export default {
     },
 
     selectCar(car) {
-      this.selectedCar = car;
-      this.setInCalendarPlanCar(car.id);
+      if (car.id !== -1) {
+        this.selectedCar = car;
+        this.setInCalendarPlanCar(car.id);
+      } else if (car.id === -1) {
+        car.id = -2
+        this.selectedCar = car;
+        this.currentPlan = null;
+        this.shareCarPanel(car.id);
+      }
     },
 
     getCars() {
       axios.get(this.CARS_GET, { withCredentials: true })
       .then((res) => {
           this.cars = res.data
-          console.log(this.cars);
           if (this.cars && this.cars[0])  {
             this.selectCar(this.cars[0]);
           }
+          if (this.userIsAdmin()) {
+            this.cars.push({ ...this.emptyCar });
+          }
       });
-      //this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
     },
 
     getCar(carID) {
@@ -373,6 +502,7 @@ export default {
 :root {
   --main-font: "Open Sans", "Segoe UI", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;;
   --text-color: #ffffff;
+  --text-color-hover-active: #f5f5f5;
   --text-color-hover: #d2d2d2;
   --text-color-active: #999999;
 
@@ -633,13 +763,11 @@ body {
 }
 
 .mainWindow {
-  margin-top: 130px;
+  margin-top: 80px;
 
-  height: 750px;
   width: 100%;
 
   display: flex;
-  align-items: center;
   justify-content: center;
 }
 
@@ -677,20 +805,58 @@ body {
   font-size: 19px;
 }
 
-.mainWindow .availableCars .car, .mainWindow .history .date {
+.mainWindow .history .date {
   padding-bottom: 20px;
 
   width: 270px;
   min-width: 270px;
   max-width: 270px;
-
   line-height: 35px;
-
   font-size: 20px;
 }
 
 .mainWindow .availableCars .car {
+  transition: min-width 0.3s ease-in-out 0.1s;
   margin: 10px;
+  margin-right: 0;
+  min-width: 270px;
+}
+
+.mainWindow .availableCars .car.editingCar {
+  min-width: 405px;
+}
+
+.mainWindow .availableCars .car.new-car-panel {
+  min-width: 112px;
+  max-height: 36px;
+  margin-right: 10px;
+  margin-top: 54px;
+}
+
+.mainWindow .availableCars .car.new-car-panel .carNumber {
+  right: 0;
+  max-width: 1px;
+  pointer-events: none;
+}
+
+.mainWindow .availableCars .car.new-car-panel .name {
+  max-width: 104px;
+  pointer-events: none;
+}
+
+.lastPanel .car .header .editCar {
+  position: absolute;
+  right: 11px;
+  transform: rotate(-135deg);
+  transform-origin: 50% 50%;
+  white-space: nowrap;
+  font-size: 25px;
+  cursor: default;
+  transition: transform 0.3s ease-in-out 0.1s;
+}
+
+.lastPanel .car .header .editCar.closeCar {
+  transform: rotate(-45deg);
 }
 
 .mainWindow .availableCars .car:hover, .mainWindow .orderList .order:hover,.mainWindow .history .date:hover {
@@ -764,7 +930,7 @@ body {
   padding: 10px;
   margin-bottom: 10px;
 
-  max-height: 90px;
+  height: 120px;
 
   display: flex;
   flex-direction: column;
@@ -811,6 +977,14 @@ body {
   font-size: 14px;
 }
 
+.panel-header {
+  display: block;
+  margin-block-start: 0.5em;
+  margin-block-end: 0.5em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+}
+
 .lastPanel .carList {
   margin-top: 10px;
   margin-bottom: 10px;
@@ -826,37 +1000,84 @@ body {
 }
 
 .carList .selected {
-  background-color: var(--text-color-hover);
+  background-color: var(--text-color-hover-active);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 .car .header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 40px;
+  min-height: 34px;
   color: var(--text-color);
   background: var(--sub-color);
 }
 
-.car .body {
-  display: flex;
-  flex-direction: column;
-  margin-top: 10px;
-  font-family: var(--main-font);
+.car .header .name,.car .header .carNumber {
+  transition: color 0.3s ease-in-out 0.3s, background-color 0s ease-in-out 0s, min-width 0.3s ease-in-out 0.1s;
+  font-size: 15px;
+  width: 125px;
+  border: none; 
+  border-radius: 4px; 
+  padding: 6px 4px; 
+  color: var(--text-color);
+  background-color: var(--sub-color);
+  outline: none;
+  height: 17px;
   font-size: 15px;
 }
 
+.car.editingCar .header .name,.car.editingCar .header .carNumber {
+  transition: color 0s ease-in-out 0s, background-color 0.2s ease-in-out 0.4s, min-width 0.3s ease-in-out 0.1s;
+  color: var(--sub-color);
+  background-color: var(--div-color);
+}
+
+.car.editingCar .header .name:focus,.car.editingCar .header .carNumber:focus {
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.car.editingCar .header .name {
+  width: 260px;
+  position: relative;
+  left: 2px;
+}
+
+.car .header .carNumber {
+  text-align: center;
+  max-width: 90px;
+  position: relative;
+  right: 28px;
+}
+
+.car .body {
+  margin-top: 4px;
+  display: flex;
+  min-height: 65%;
+  overflow: hidden;
+}
+
 .car .description {
-  margin-top: 10px;
-  height: 55px;
-  line-height: 1em;
-  overflow: hidden;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  vertical-align: middle; text-align: left;
+  transition: color 0.3s ease-in-out 0.4s, background-color 0.3s ease-in-out 0.4s, min-width 0.3s ease-in-out 0.1s;
+  font-size: 15px;
+  border: none; 
+  padding: 4px 4px; 
+  outline: none;
+  resize: none;
+  overflow-y: auto; 
+  line-height: 1.3;
+  background-color: transparent;
+  font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+  color: var(--main-color);
+  min-height: 100%;
+  max-width: 262px;
+  min-width: 262px;
+  overflow-y: hidden;
+}
+
+.car.editingCar .description {
+  background-color: var(--div-color);
 }
 
 .car .header p {
@@ -876,6 +1097,82 @@ body {
 .lastPanel {
   width: 40%;
   background-color: var(--div-color);
+}
+
+.car .body .custom-checkbox {
+  opacity: 0;
+  margin-left: 112px;
+}
+
+.car .body .checkbox-label {
+  top: -20px;
+  display: inline-block;
+  position: relative;
+  width: 70px;
+  font-size: 15px;
+  padding-left: 23px;
+  line-height: 1;
+  cursor: pointer;
+  padding-top: 6px;
+}
+
+.car .body .checkbox-label:before {
+  content: '';
+  position: absolute;
+  left: 103px;
+  top: 7px;
+  width: 30px;
+  height: 30px;
+  border: 0.5px solid var(--text-color-hover);
+  background-color: var(--div-color);
+}
+
+.car .body .custom-checkbox:checked + .checkbox-label:before {
+  content: '\2713'; 
+  text-align: center;
+  line-height: 27px;
+  font-size: 40px;
+  color: var(--main-color);
+}
+
+.car .body .save-car {
+  margin-top: -8px;
+  margin-left: 9px;
+  height: 32px;
+  width: 90px;
+  color: var(--ready-border);
+  background-color: var(--div-color);
+  border: 1px solid var(--ready-border);
+  font-family: sans-serif;
+  cursor: pointer;
+}
+
+.car .body .save-car.full-save-car {
+  width: 126px;
+}
+
+.car .body .save-car:hover {
+  color: var(--text-color);
+  background-color: var(--ready-border);
+  transition: all .1s ease-in-out;
+}
+
+.car .body .delete-car {
+  margin-top: -8px;
+  margin-left: 4px;
+  height: 32px;
+  width: 32px;
+  color: var(--deleteButton-background);
+  background-color: var(--div-color);
+  border: 1px solid var(--deleteButton-background);
+  font-family: sans-serif;
+  cursor: pointer;
+}
+
+.car .body .delete-car.ready-delete {
+  color: var(--text-color);
+  background-color: var(--deleteButton-background);
+  transition: all .1s ease-in-out;
 }
 
 </style>
