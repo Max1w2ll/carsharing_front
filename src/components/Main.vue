@@ -1,25 +1,12 @@
 <template>
   <div>
-    <div class="header">
-      <div class="buttons">
-        <a> Главная </a>
-        <a> Сотрудники </a>
-        <a> База знаний </a>
-        <a> Заявки </a>
-      </div>
-      <div class="banner">
-        <a>
-          <img src="./isb_logo.jpg" width=79 height="64">
-        </a>
-        <p> Заявки на транспорт ООО «НПФ «ИСБ»</p>
-      </div>
-    </div>
+    <Header/>
 
     <div class="mainWindow">
       <div class="history">
         <p> ИСТОРИЯ </p>
         <div class="orderList">
-          <div class="order" v-for="order in orders" :key="order.id">
+          <div class="order" @click="getOrder(order.id)" v-for="order in orders" :key="order.id">
             <div class="header">
               <p class="status">{{ order.status }}</p>
               <p class="autoId">{{ order.numberCar }}</p>
@@ -35,12 +22,13 @@
             <p> Cоздайте новый по кнопке ниже </p>
           </div>
         </div>
-        <button class="createOrder" @click.prevent="openCreateOrderDialog"> Отчёты </button>
+        <button class="records" @click.prevent="openCreateOrderDialog"> Отчёты </button>
       </div>
 
       <div class="info">
-        <p> ИНФОРМАЦИЯ </p>
-        <p class="author"> Автор заявки: {{ userInfo }} </p>
+        <p v-if="!editing"> НОВАЯ ЗАЯВКА </p>
+        <p v-if="editing"> ИНФОРМАЦИЯ </p>
+        <p class="author"> Автор заявки: {{ userInfo.displayName }} </p>
         <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
         <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
         <p class="dateRent"> Дата арендования: </p>
@@ -54,8 +42,10 @@
             <td> <input id="settingDateTo" type="date"> </td> 
           </tr>
         </div>
-        <p class="description"> Описание заявки </p>
-        <input>
+        <div class="description">
+          <p> Описание заявки </p>
+          <textarea id="orderDesc"/>
+        </div>
         <button class="createOrder" @click.prevent="createOrder()"> Новый заказ </button> 
       </div>
 
@@ -97,12 +87,13 @@
 
 <script>
 import VueSelect from 'vue-select';
+import ModalWindows from '@/components/ModalWindows.js';
 
 import "@/css/default.css"
 import "@/css/holidays-us.css"
 
 import axios from 'axios';
-import ModalWindows from '@/components/ModalWindows.js';
+import Header from '@/components/Header.vue'
 import CreateOrderDialog from '@/components/CreateOrderDialog.vue';
 import { CalendarView, CalendarViewHeader } from "vue-simple-calendar"
 
@@ -112,6 +103,7 @@ import "@/css/default.css"
 export default {
   name: 'Main',
   components: {
+    Header,
     CreateOrderDialog,
     VueSelect,
     CalendarView,
@@ -130,26 +122,30 @@ export default {
 
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
-        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/all',
+        CARS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/all',
+        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/car/',
         cars: () => [],
 
         CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
 
         ORDERS_POST: 'https://portal.npf-isb.ru//carsharing/api/orders/create',
+        ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
+        ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
+        orders: () => [],
 
-        selectedCar: '',
+        selectedCar: null,
         orderInfo: {
-          car: 0,
+          car: null,
           desc: "Тестовое описание",
-          beginDate: "2023-11-22",
-          endDate: "2023-11-25"
+          beginDate: "",
+          endDate: ""
         },
         showDate: new Date(),
 
-        ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
-        orders: () => [],
         currentPlan: [],
         carPlans: [{id: null, plan: [{}]}],
+
+        editing: false,
     }
   },
 
@@ -303,7 +299,7 @@ export default {
     },
 
     getCars() {
-      axios.get(this.CAR_GET, { withCredentials: true })
+      axios.get(this.CARS_GET, { withCredentials: true })
       .then((res) => {
           this.cars = res.data
           console.log(this.cars);
@@ -312,6 +308,23 @@ export default {
           }
       });
       //this.cars = [{"id":0,"name":"Toyota Camry","number":"CA 117 A 70","isShowInList":1,"desc":"Цвет серый"},{"id":2,"name":"LADA Granta седан","number":"BB 685 A 70","isShowInList":1,"desc":"НЕ РЕЗЕРВИРОВАТЬ НА АВГУСТ"},{"id":3,"name":"Mitsubishi Lancer","number":"OO 121 C 101","isShowInList":1,"desc":"детское кресло, вместительный багажник"},{"id":5,"name":"Тест редактирования","number":"AA 000 A 000","isShowInList":1,"desc":"Create/edit/edit 123"},{"id":6,"name":"Mitsubisi","number":"ЕЕ 794 A 70","isShowInList":1,"desc":"Масса 16,5 т. \nДизельный двигатель ЯМЗ - 53608 с турбонаддувом - 312 л.с. \nЦвет: Камуфляж дубок-3 "}];
+    },
+
+    getCar(carID) {
+      axios.get(this.CAR_GET + carID, { withCredentials: true })
+      .then((res) => {
+        return res.data
+      })
+    },
+
+    getOrder(orderID) {
+      this.editing = true;
+      axios.get(this.ORDER_GET + orderID, { withCredentials: true })
+      .then((res) => {
+        this.orderInfo = res.data;  
+        this.getCar(this.orderInfo.car);
+        console.log(res);
+      });
     },
 
     getOrders() {
@@ -323,6 +336,11 @@ export default {
     },
 
     async createOrder() {
+      this.orderInfo.car = this.selectedCar.id;
+      this.orderInfo.desc = document.getElementById('orderDesc').value;
+      this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
+      this.orderInfo.endDate = document.getElementById('settingDateTo').value;
+      console.log(this.orderInfo);
       try {
         await axios.post(this.ORDERS_POST, this.orderInfo, { withCredentials: true })
         .then((res) => {
@@ -351,11 +369,6 @@ export default {
 </script>
 
 <style>
-/* Auth window */
-@font-face {
-  font-family: "Roboto";
-  src: url("../assets/fonts/roboto/Roboto-Regular.ttf");
-}
 
 :root {
   --main-font: "Open Sans", "Segoe UI", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;;
@@ -612,66 +625,11 @@ body {
     background: var(--success-background);
 }
 
-/* Other END */
-
 :root {
   --main-color: #2767c9;
   --text-color: #ffffff;
   --div-color: #ffffff;
   --border-color: rgba(39, 103, 201, .2);
-}
-
-.header {
-  height: 32px;
-  width: 100%;
-
-  background: #2767c9;
-}
-
-.header .buttons {
-  display: flex;
-}
-.header .buttons a {
-  height: 32px;
-  width: 160px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  color: var(--text-color);
-
-  font-size: 17px;
-  text-align: center;
-
-  cursor: pointer;
-}
-.header .buttons a:hover {
-  background-color: #f1f8ff;
-  color: #2767c9;
-  transition: all .1s ease-in-out;
-}
-
-.header .banner {
-  height: 80px;
-
-  display: flex;
-  align-items: center;
-
-  background: var(--div-color);
-  border: 1px solid var(--border-color);
-}
-.header .banner a {
-  height: 79px;
-  width: 160px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.header .banner p {
-  font-size: 32px;
-  color: var(--main-color);
 }
 
 .mainWindow {
@@ -760,7 +718,7 @@ body {
     background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder {
+.createOrder, .records {
   margin-top: 20px;
 
   height: 40px;
@@ -776,7 +734,7 @@ body {
   cursor: pointer;
 }
 
-.createOrder:hover {
+.createOrder:hover, .records:hover {
   color: var(--text-color);
   background: var(--main-color);
 
@@ -793,6 +751,13 @@ body {
 
 .dateSettings input {
   margin-bottom: 15px;
+}
+
+.info .description textarea {
+  height: 285px;
+  width: 90%;
+
+  resize: none;
 }
 
 .order, .car {
