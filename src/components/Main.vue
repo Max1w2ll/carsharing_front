@@ -5,15 +5,26 @@
     <div class="mainWindow">
       <div class="history">
         <div class="panel-header"> ИСТОРИЯ </div>
-        <div class="orderList">
-          <div class="order" @click="getOrder(order.id)" v-for="order in orders" :key="order.id">
+        <div style="display: flex">
+          <input type="checkbox" id='showActual' class="custom-checkbox" v-model="showActual">
+          <label for='showActual' class="checkbox-label">Только актуальные</label>
+        </div>
+        <div class="search-box">
+          <label class="search-label">Поиск</label>
+          <div style="width: 100%;">
+            <input class="search-area" v-model="searchTextOrder"/>
+          </div>
+        </div>
+        <div class="orderList" ref="orderListRef" :class="{ 'orderList-employee': !userIsAdmin() }">
+          <div class="order" @click="getOrder(order)" v-for="order in filteredItems" :key="order.id" :data-key="order.id" :class="{ 'selected': order.id === selectedOrder.id }">
             <div class="header">
               <p class="status">{{ order.status }}</p>
-              <p class="autoId">{{ order.numberCar }}</p>
+              <p class="auto-number">{{ order.numberCar }}</p>
             </div>
             <div class="body">
               <div class="username"> {{ order.username }}</div>
               <div class="dates"> {{ formatDate(order.beginDate) }} - {{ formatDate(order.endDate) }}</div>
+              <div class="description"> {{ order.desc }}</div>
             </div>
           </div>
           <div class="noOrders" v-if="orders.length == 0">
@@ -22,7 +33,9 @@
             <p> Cоздайте новый по кнопке ниже </p>
           </div>
         </div>
-        <button class="records" @click.prevent="openCreateOrderDialog"> Отчёты </button>
+        <div style="padding-right: 32px">
+          <button class="records" v-if="userIsAdmin()" @click.prevent="openCreateOrderDialog"> Отчёты </button>
+        </div>
       </div>
 
       <div class="info">
@@ -52,11 +65,11 @@
       <div class="lastPanel">
         <div class="availableCars">
         <div class="panel-header"> ДОСТУПНЫЕ МАШИНЫ </div>
-          <div class="carList" ref="carList" @wheel="scrollHorizontally">
-            <div class="car" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
+          <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
+            <div class="car" :data-key="car.id" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
               <div class="header">
                 <input class="name" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
-                <input v-if="car.id !== -1" class="carNumber" v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :style="{ 'right: 0': !userIsAdmin() }"/>
+                <input v-if="car.id !== -1" class="carNumber" v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin() }"/>
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" :class="{ 'closeCar': car.id === editingCar.id }" @click.prevent="shareCarPanel(car.id)"> ! </div> 
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" @click.prevent="shareCarPanel(car.id)"> ! </div> 
               </div>
@@ -79,7 +92,8 @@
             :show-date="showDate"
             :startingDayOfWeek="1"
             :items="currentPlan"
-            class="theme-default">
+            class="theme-default"
+            @click-item="onClickOrderOnCalendar">
             <template #header="{ headerProps }">
               <calendar-view-header
                 :header-props="headerProps"
@@ -87,6 +101,19 @@
             </template>
           </calendar-view>
         </div>
+        <div class="legenda">
+          <div class="text-block">
+            <div class="circle-with-text">
+              <div class="circle solid"></div>
+              Одобрен
+            </div>
+            <div class="circle-with-text">
+              <div class="circle outlined"></div>
+              В обработке
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -145,7 +172,12 @@ export default {
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
         ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
         orders: () => [],
+        filteredOrders: () => [],
+        showActual: true,
 
+        searchTextOrder: '',
+
+        selectedOrder: {},
         selectedCar: {},
         orderInfo: {
           car: null,
@@ -171,6 +203,36 @@ export default {
     }
   },
 
+  computed: {
+    filteredItems() {
+      if (!this.searchTextOrder) {
+        return this.showActual ? this.filteredOrders : this.orders;
+      }
+      
+      const searchTerms = this.searchTextOrder.toLowerCase().split(' ');
+      return (this.showActual ? this.filteredOrders : this.orders).filter(item => {
+        return searchTerms.every(term => {
+          return Object.values(item).some(value => {
+            if (typeof value === 'string' || value instanceof String) {
+              return value.toLowerCase().includes(term);
+            }
+            return false;
+          });
+        });
+      });
+    }
+  },
+
+  watch: {
+    filteredItems(newFilteredItems, oldFilteredItems) {
+      if (newFilteredItems !== oldFilteredItems) {
+        if (newFilteredItems.length > 0) {
+          this.scrollElementInList(this.selectedOrder, this.$refs.orderListRef)
+        }
+      }
+    },
+  },
+
   methods: {
     userIsAdmin(){
       return true //this.userInfo.role === "globaladmin";
@@ -178,8 +240,10 @@ export default {
 
     updateShowInList(car, value) {
       this.cars[this.cars.findIndex(it => it.id === car.id)].isShowInList = value ? 1 : 0;
-      console.log(car.id);
-      console.log(value);
+    },
+
+    updateShowActual(value) {
+      this.showActual = value;
     },
 
     intToBool(int) {
@@ -202,7 +266,6 @@ export default {
         if (carId === -2) {
           this.editingCar.id = -1;
         }
-        console.log(this.editingCar);
         this.cars[this.cars.findIndex(car => car.id === carId)] = { ...this.editingCar };
         this.editingCar = {};
       }
@@ -210,7 +273,7 @@ export default {
     
     scrollHorizontally(event) {
       const delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-      this.$refs.carList.scrollLeft -= delta * 40;
+      this.$refs.carListRef.scrollLeft -= delta * 40;
       event.preventDefault();
     },
 
@@ -415,10 +478,10 @@ export default {
     },
 
     selectCar(car) {
-      if (car.id !== -1) {
+      if (car && car.id !== -1) {
         this.selectedCar = car;
         this.setInCalendarPlanCar(car.id);
-      } else if (car.id === -1) {
+      } else if (car && car.id === -1) {
         car.id = -2
         this.selectedCar = car;
         this.currentPlan = null;
@@ -446,21 +509,69 @@ export default {
       })
     },
 
-    getOrder(orderID) {
+    getOrder(order) {
+      this.selectedOrder = order;
+      const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
+      if (selectedCarByOrder) {
+        this.selectCar(selectedCarByOrder);
+        this.scrollElementInList(selectedCarByOrder, this.$refs.carListRef);
+      }
       this.editing = true;
-      axios.get(this.ORDER_GET + orderID, { withCredentials: true })
+      axios.get(this.ORDER_GET + order.id, { withCredentials: true })
       .then((res) => {
         this.orderInfo = res.data;  
         this.getCar(this.orderInfo.car);
-        console.log(res);
       });
+    },
+    
+		onClickOrderOnCalendar(clickOrder) {
+      const findedOrder = this.orders.find(it => it.id.toString() === clickOrder.id);
+      const actualDate = new Date();
+      if (findedOrder) {
+        this.searchTextOrder = '';
+        if (this.showActual && new Date(findedOrder.endDate) < actualDate) {
+          this.showActual = false;
+        }
+        this.getOrder(findedOrder);
+        this.scrollElementInList(findedOrder, this.$refs.orderListRef);
+      }
+		},
+
+    scrollElementInList(elementToScroll, parentElement) {
+      if (parentElement && elementToScroll.id) {
+        const element = parentElement.querySelector(`[data-key="${elementToScroll.id}"]`);
+        if (element) {
+          const start = parentElement.scrollTop;
+          const end = element.offsetTop - element.offsetHeight - 100;
+          const duration = 500;
+          let startTime = null;
+
+          const animateScroll = timestamp => {
+            if (!startTime) {
+              startTime = timestamp;
+            }
+            const progress = timestamp - startTime;
+            const easeInOutQuad = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            const ease = easeInOutQuad(Math.min(progress / duration, 1));
+
+            parentElement.scrollTop = start + (end - start) * ease;
+
+            if (progress < duration) {
+              window.requestAnimationFrame(animateScroll);
+            }
+          };
+
+          window.requestAnimationFrame(animateScroll);
+        }
+      }
     },
 
     getOrders() {
       axios.get(this.ORDERS_GET, { withCredentials: true })
       .then((res) => {
           this.orders = res.data
-          console.log(this.orders);
+          const actualDate = new Date();
+          this.filteredOrders = this.orders.filter(order =>  new Date(order.endDate) >= actualDate);
       });
     },
 
@@ -798,9 +909,7 @@ body {
 }
 
 .mainWindow .lastPanel .calendar {
-  margin: 15px;
   margin-right: 32px;
-  margin-left: 0;
   height: 550px;
   font-size: 19px;
 }
@@ -813,6 +922,29 @@ body {
   max-width: 270px;
   line-height: 35px;
   font-size: 20px;
+}
+
+.mainWindow .history .search-box {
+  display: flex; 
+  padding-right: 38px;
+  top: -12px;
+  position: relative;
+}
+
+.mainWindow .history .search-label {
+  font-size: 15px;
+  padding-right: 5px;
+  padding-top: 10px;
+}
+
+.mainWindow .history .search-area {
+  font-size: 15px;
+  border: 0.5px solid var(--text-color-hover);
+  border-radius: 4px; 
+  padding: 2px 2px; 
+  color: var(--main-color);
+  outline: none;
+  width: 100%;
 }
 
 .mainWindow .availableCars .car {
@@ -866,10 +998,14 @@ body {
 .orderList {
   padding-right: 15px;
 
-  height: 650px; 
+  height: 630px; 
 
   overflow-x: clip;
   overflow-y: scroll;
+}
+
+.orderList-employee {
+  height: 83%
 }
 
 .ordersList::-webkit-scrollbar-track {
@@ -898,6 +1034,10 @@ body {
   font-family: sans-serif;
 
   cursor: pointer;
+}
+
+.records {
+  width: 100%;
 }
 
 .createOrder:hover, .records:hover {
@@ -938,11 +1078,24 @@ body {
   border: 1px solid var(--sub-color);
 }
 
+.order {
+  padding: 10px;
+  margin-bottom: 10px;
+
+  min-height: 140px;
+  max-height: 140px;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--sub-color);
+}
+
 .order .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 40px;
+  min-height: 34px;
   color: var(--text-color);
   background: var(--sub-color);
 }
@@ -958,23 +1111,37 @@ body {
 .order .header p {
   margin: 0;
   font-family: var(--main-font);
-  font-size: 14px;
+  font-size: 17px;
   padding: 0 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.order .header .autoId {
+.order .header .auto-number {
   text-align: right;
+}
+
+.order .body .description {
+  padding-top: 10px;
+  font-size: 16px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  width: auto;
+  float: left;
 }
 
 .order .body .username {
   font-weight: bold;
+  font-size: 17px;
 }
 
 .order .body .dates {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .panel-header {
@@ -987,7 +1154,7 @@ body {
 
 .lastPanel .carList {
   margin-top: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   margin-right: 32px;
 
   overflow-x: scroll;
@@ -999,7 +1166,7 @@ body {
   border: 1px solid var(--border-color);
 }
 
-.carList .selected {
+.selected {
   background-color: var(--text-color-hover-active);
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
@@ -1051,6 +1218,10 @@ body {
   right: 28px;
 }
 
+.car .header .carNumber-employee {
+  right: 0;
+}
+
 .car .body {
   margin-top: 4px;
   display: flex;
@@ -1099,39 +1270,56 @@ body {
   background-color: var(--div-color);
 }
 
-.car .body .custom-checkbox {
+.custom-checkbox {
   opacity: 0;
   margin-left: 112px;
 }
 
-.car .body .checkbox-label {
-  top: -20px;
+.checkbox-label {
   display: inline-block;
   position: relative;
-  width: 70px;
   font-size: 15px;
-  padding-left: 23px;
   line-height: 1;
   cursor: pointer;
   padding-top: 6px;
 }
 
-.car .body .checkbox-label:before {
+.car .body .checkbox-label {
+  width: 70px;
+  top: -20px;
+  padding-left: 23px;
+}
+
+.history .checkbox-label {
+  min-width: 170px;
+  top: -12px;
+  left: -127px;
+}
+
+.checkbox-label:before {
   content: '';
   position: absolute;
-  left: 103px;
-  top: 7px;
-  width: 30px;
-  height: 30px;
+  width: 17px;
+  height: 17px;
   border: 0.5px solid var(--text-color-hover);
   background-color: var(--div-color);
 }
 
-.car .body .custom-checkbox:checked + .checkbox-label:before {
+.car .body .checkbox-label:before {
+  left: 110px;
+  top: 13px;
+}
+
+.history .checkbox-label:before {
+  left: 140px;
+  top: 5px;
+}
+
+.custom-checkbox:checked + .checkbox-label:before {
   content: '\2713'; 
   text-align: center;
-  line-height: 27px;
-  font-size: 40px;
+  line-height: 16px;
+  font-size: 24px;
   color: var(--main-color);
 }
 
@@ -1173,6 +1361,43 @@ body {
   color: var(--text-color);
   background-color: var(--deleteButton-background);
   transition: all .1s ease-in-out;
+}
+
+.legenda {
+  margin-top: -2px;
+  padding-right: 38px;
+}
+
+.legenda .text-block {
+  justify-content: right;
+  padding: 2px;
+  width: 100%;
+  display: flex;
+  font-size: 14px;
+  margin-right: 25px;
+}
+
+.legenda .text-block .circle-with-text {
+  padding-top: 2px;
+  display: flex;
+  align-items: center;
+  padding-left: 45px;
+}
+
+.legenda .text-block .circle-with-text .circle {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.legenda .text-block .circle-with-text .solid {
+  background-color: var(--main-color);
+  border: 2px solid var(--main-color);
+}
+
+.legenda .text-block .circle-with-text .outlined {
+  border: 2px solid var(--main-color);
 }
 
 </style>
