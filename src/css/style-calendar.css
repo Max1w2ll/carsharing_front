@@ -126,6 +126,10 @@ border-width:1px;
 direction:initial
 }
 
+.cv-item:hover {
+  box-shadow: 0 0 7px rgba(0, 0, 0, 0.4);
+}
+
 .cv-wrapper.wrap-item-title-on-hover .cv-item:hover{
 white-space:normal;
 z-index:1

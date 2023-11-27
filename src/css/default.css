@@ -86,6 +86,10 @@ having to override as much.
     border-color: var(--main-color);
 }
 
+.theme-default .cv-item.selected {
+    border-color: var(--success-background);
+}
+
 .theme-default .cv-item.toBeContinued {
 	border-right-style: none;
 	border-top-right-radius: 0;

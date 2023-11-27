@@ -97,7 +97,7 @@
             <template #header="{ headerProps }">
               <calendar-view-header
                 :header-props="headerProps"
-                @input="setShowDate" />
+                @input="setShowDate"/>
             </template>
           </calendar-view>
         </div>
@@ -150,26 +150,26 @@ export default {
   data() {
     return {
         showCreateOrderDialog: false,
-
+        ///*'https://portal.npf-isb.ru*/ 'http://localhost:4451
         USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
-        userJWT: () => [],
-
+        userJWT: () => [], 
+ 
         USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
-        userInfo: () => [],
-
+        userInfo: () => [], 
+ 
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
-
+ 
         CARS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/all',
         CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/cars/',
         CAR_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/',
         CAR_POST: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/create',
         CAR_PATCH: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/edit',
-        cars: () => [],
-
+        cars: () => [], 
+ 
         CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
 
         ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/orders/create',
-        ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/all',
+        ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/all',
         ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
         orders: () => [],
         filteredOrders: () => [],
@@ -186,9 +186,7 @@ export default {
           endDate: ""
         },
         showDate: new Date(),
-
         currentPlan: [],
-        carPlans: [{id: null, plan: [{}]}],
 
         editing: false,
         editingCar: {},
@@ -227,7 +225,33 @@ export default {
     filteredItems(newFilteredItems, oldFilteredItems) {
       if (newFilteredItems !== oldFilteredItems) {
         if (newFilteredItems.length > 0) {
-          this.scrollElementInList(this.selectedOrder, this.$refs.orderListRef)
+          setTimeout(() => {this.scrollElementInList(this.selectedOrder, this.$refs.orderListRef, false)}, 300);
+        }
+      }
+    },
+    
+    selectedOrder(newSelectedOrder, oldSelectedOrder) {
+      if (newSelectedOrder !== oldSelectedOrder && this.currentPlan && this.currentPlan !== {}) {
+        if (oldSelectedOrder && 'id' in oldSelectedOrder) {
+          let oldOrderPlan = this.currentPlan.find(plan => plan.id === oldSelectedOrder.id.toString());
+          if (oldOrderPlan && 'classes' in oldOrderPlan) {
+            oldOrderPlan.classes = oldOrderPlan.classes.filter(it => it !== 'selected');
+          }
+        }
+        if (newSelectedOrder && 'id' in newSelectedOrder) {
+          let newOrderPlan = this.currentPlan.find(plan => plan.id === newSelectedOrder.id.toString());
+          if (newOrderPlan && 'classes' in newOrderPlan) {
+            newOrderPlan.classes.push("selected");
+          }
+        }
+      }
+    },
+
+    currentPlan(newPlan, oldPlan) {
+      if (newPlan !== oldPlan && newPlan && this.selectedOrder && 'id' in this.selectedOrder) {
+        let newOrderPlan = newPlan.find(plan => plan.id === this.selectedOrder.id.toString());
+        if (newOrderPlan && 'classes' in newOrderPlan) {
+          newOrderPlan.classes.push("selected");
         }
       }
     },
@@ -257,16 +281,17 @@ export default {
         this.editingCar = { ...this.cars.find(it => it.id === carId) };
         if (carId === -2) {
           const observer = new ResizeObserver(() => {
-            this.$refs.carList.scrollLeft += 1500;
+            this.$refs.carListRef.scrollLeft += 1500;
             observer.disconnect();
           });
-          observer.observe(this.$refs.carList);
+          observer.observe(this.$refs.carListRef);
         }
       } else if (this.editingCar.id === carId) {
         if (carId === -2) {
           this.editingCar.id = -1;
         }
         this.cars[this.cars.findIndex(car => car.id === carId)] = { ...this.editingCar };
+        this.selectedCar = { ...this.editingCar };
         this.editingCar = {};
       }
     },
@@ -334,38 +359,19 @@ export default {
       }
     },
 
-		thisMonth(d, h, m) {
-			const t = new Date()
-			return new Date(t.getFullYear(), t.getMonth(), d, h || 0, m || 0)
-		},
-
-    setShowDate(d) {
-      this.showDate = d;
+    setShowDate(dateCalendar) {
+      if ('id' in this.selectedCar) {
+        this.setInCalendarPlanCar(this.selectedCar.id, dateCalendar);
+      }
+      this.showDate = dateCalendar;
     },
 
-    updatePlanCarCalendar(carId) {
-      axios.get(this.CAR_PLAN_GET + `/${carId}`, { withCredentials: true })
+    setInCalendarPlanCar(carId, dateCalendar) {
+      const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
+      axios.get(this.CAR_PLAN_GET + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
       .then((res) => {
-        const findPlan = this.carPlans.filter(it => it.id == carId);
-        if (findPlan.length > 0){
-          findPlan[0].plan = res.data.ordersPerMonth;
-        } else {
-          this.carPlans.push({id: carId, plan: res.data.ordersPerMonth})
-        }
-        this.setInCalendarPlanCar(carId);
+          this.currentPlan = res.data.ordersPerMonth;
       })
-    },
-
-    setInCalendarPlanCar(carId) {
-        if (this.carPlans) {
-          const findPlan = this.carPlans.filter(it => it.id == carId);
-          if (findPlan.length > 0) {
-            this.currentPlan = findPlan[0].plan;
-            return;
-          } else {
-            this.updatePlanCarCalendar(carId);
-          }
-        }
     },
 
     openCreateOrderDialog() {
@@ -479,8 +485,10 @@ export default {
 
     selectCar(car) {
       if (car && car.id !== -1) {
-        this.selectedCar = car;
-        this.setInCalendarPlanCar(car.id);
+        if (car.id !== this.selectedCar.id) {
+          this.selectedCar = car;
+          this.setInCalendarPlanCar(car.id, this.showDate);
+        }
       } else if (car && car.id === -1) {
         car.id = -2
         this.selectedCar = car;
@@ -514,7 +522,7 @@ export default {
       const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
       if (selectedCarByOrder) {
         this.selectCar(selectedCarByOrder);
-        this.scrollElementInList(selectedCarByOrder, this.$refs.carListRef);
+        this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
       }
       this.editing = true;
       axios.get(this.ORDER_GET + order.id, { withCredentials: true })
@@ -533,16 +541,16 @@ export default {
           this.showActual = false;
         }
         this.getOrder(findedOrder);
-        this.scrollElementInList(findedOrder, this.$refs.orderListRef);
+        this.scrollElementInList(findedOrder, this.$refs.orderListRef, false);
       }
 		},
 
-    scrollElementInList(elementToScroll, parentElement) {
-      if (parentElement && elementToScroll.id) {
+    scrollElementInList(elementToScroll, parentElement, isHorizontal) {
+      if (parentElement && elementToScroll) {
         const element = parentElement.querySelector(`[data-key="${elementToScroll.id}"]`);
         if (element) {
-          const start = parentElement.scrollTop;
-          const end = element.offsetTop - element.offsetHeight - 100;
+          const start = isHorizontal ? parentElement.scrollLeft : parentElement.scrollTop;
+          const end = (isHorizontal ? (element.offsetLeft + element.offsetWidth - 1300) : (element.offsetTop - element.offsetHeight - 100));
           const duration = 500;
           let startTime = null;
 
@@ -554,7 +562,11 @@ export default {
             const easeInOutQuad = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
             const ease = easeInOutQuad(Math.min(progress / duration, 1));
 
-            parentElement.scrollTop = start + (end - start) * ease;
+            if (isHorizontal) {
+              parentElement.scrollLeft = start + (end - start) * ease;
+            } else {
+              parentElement.scrollTop = start + (end - start) * ease;
+            }
 
             if (progress < duration) {
               window.requestAnimationFrame(animateScroll);
