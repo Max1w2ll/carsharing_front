@@ -41,25 +41,34 @@
       <div class="info">
         <div class="panel-header" v-if="!editing"> НОВАЯ ЗАЯВКА </div>
         <div class="panel-header" v-if="editing"> ИНФОРМАЦИЯ </div>
-        <p class="author"> Автор заявки: {{ userInfo.displayName }} </p>
+        <p class="author" v-if="editing"> Автор заявки: {{ selectedOrder.username }} </p>
+        <p class="author" v-if="!editing"> Автор заявки: {{ userInfo.displayName }} </p>
         <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
         <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
         <p class="dateRent"> Дата арендования: </p>
         <div class="dateSettings">
           <tr> 
             <td> Начало аренды: </td> 
-            <td> <input id="settingDateFrom" type="date"> </td> 
+            <td> 
+              <input id="settingDateFrom" v-if="!editing" type="date"> 
+              <input id="settingDateFromEdit" v-if="editing" v-model="selectedOrder.beginDate" type="date"> 
+            </td> 
           </tr>
           <tr> 
             <td> Конец аренды: </td> 
-            <td> <input id="settingDateTo" type="date"> </td> 
+            <td> 
+              <input id="settingDateTo" v-if="!editing" type="date"> 
+              <input id="settingDateToEdit" v-if="editing" v-model="selectedOrder.endDate" type="date"> 
+            </td> 
           </tr>
         </div>
         <div class="description">
           <p> Описание заявки </p>
-          <textarea id="orderDesc"/>
+          <textarea id="orderDesc" v-if="!editing" v-model="orderInfo.description"/>
+          <textarea id="orderDesc" v-if="editing" v-model="selectedOrder.desc"/>
         </div>
-        <button class="createOrder" @click.prevent="createOrder()"> Новый заказ </button> 
+        <button class="createOrder" v-if="editing" @click.prevent="editOrder()"> Редактировать заказ </button> 
+        <button class="createOrder" v-if="!editing" @click.prevent="createOrder()"> Новый заказ </button> 
       </div>
 
       <div class="lastPanel">
@@ -171,6 +180,7 @@ export default {
         ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/orders/create',
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/all',
         ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
+        ORDER_PATCH: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/edit',
         orders: () => [],
         filteredOrders: () => [],
         showActual: true,
@@ -518,13 +528,14 @@ export default {
     },
 
     getOrder(order) {
+      this.editing = true;
       this.selectedOrder = order;
       const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
       if (selectedCarByOrder) {
         this.selectCar(selectedCarByOrder);
         this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+        console.log(this.selectedOrder);
       }
-      this.editing = true;
       axios.get(this.ORDER_GET + order.id, { withCredentials: true })
       .then((res) => {
         this.orderInfo = res.data;  
@@ -606,6 +617,22 @@ export default {
         ModalWindows.showModal(e.response.data.message, false);
       }
     },
+
+    async editOrder() {
+      console.log(this.selectedOrder);
+      try {
+        await axios.patch(this.ORDERS_PATCH, this.selectedOrder)
+        .then((res) => {
+          console.log(res);
+          ModalWindows.showModal("Заказ редактирован!", true);
+          this.getOrders();
+        });
+      }
+      catch (e) {
+        console.log(e);
+        ModalWindows.showModal(e.response.data.message, false);
+      }
+    }
 
   },
 
