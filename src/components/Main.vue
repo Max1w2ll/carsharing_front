@@ -177,7 +177,7 @@ export default {
  
         CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
 
-        ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/orders/create',
+        ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/create',
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/all',
         ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
         ORDER_PATCH: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/edit',
@@ -652,7 +652,7 @@ export default {
 :root {
   --main-font: "Open Sans", "Segoe UI", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;;
   --text-color: #ffffff;
-  --text-color-hover-active: #f5f5f5;
+  --text-color-hover-active: #e3e3e3;
   --text-color-hover: #d2d2d2;
   --text-color-active: #999999;
 
@@ -991,6 +991,7 @@ body {
   margin: 10px;
   margin-right: 0;
   min-width: 270px;
+  max-width: 270px;
 }
 
 .mainWindow .availableCars .car.editingCar {
