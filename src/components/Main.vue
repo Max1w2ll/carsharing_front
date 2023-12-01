@@ -281,7 +281,7 @@ export default {
     },
 
     intToBool(int) {
-      return int === 1;
+      return int === 1 || int;
     },
 
     shareCarPanel(carId) {
