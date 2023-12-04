@@ -68,6 +68,7 @@
           <textarea id="orderDesc" v-if="editing" v-model="selectedOrder.desc"/>
         </div>
         <button class="createOrder" v-if="editing" @click.prevent="editOrder()"> Редактировать заказ </button> 
+        <button class="deleteOrder" v-if="editing && userIsAdmin()" @click.prevent="deleteOrder()"> Удалить заказ </button> 
         <button class="createOrder" v-if="!editing" @click.prevent="createOrder()"> Новый заказ </button> 
       </div>
 
@@ -168,11 +169,11 @@ export default {
  
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
  
+        CAR_POST: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/create',
         CARS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/all',
         CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/cars/',
-        CAR_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/',
-        CAR_POST: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/create',
         CAR_PATCH: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/edit',
+        CAR_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/',
         cars: () => [], 
  
         CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
@@ -180,7 +181,8 @@ export default {
         ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/create',
         ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/all',
         ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
-        ORDER_PATCH: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/edit',
+        ORDER_PATCH: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/edit',
+        ORDER_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/',
         orders: () => [],
         filteredOrders: () => [],
         showActual: true,
@@ -603,7 +605,6 @@ export default {
       this.orderInfo.desc = document.getElementById('orderDesc').value;
       this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
       this.orderInfo.endDate = document.getElementById('settingDateTo').value;
-      console.log(this.orderInfo);
       try {
         await axios.post(this.ORDERS_POST, this.orderInfo, { withCredentials: true })
         .then((res) => {
@@ -619,12 +620,26 @@ export default {
     },
 
     async editOrder() {
-      console.log(this.selectedOrder);
       try {
-        await axios.patch(this.ORDERS_PATCH, this.selectedOrder)
+        await axios.patch(this.ORDER_PATCH, this.selectedOrder)
         .then((res) => {
           console.log(res);
           ModalWindows.showModal("Заказ редактирован!", true);
+          this.getOrders();
+        });
+      }
+      catch (e) {
+        console.log(e);
+        ModalWindows.showModal(e.response.data.message, false);
+      }
+    },
+
+    async deleteOrder() {
+      try {
+        axios.delete(this.ORDER_DELETE+this.selectedOrder.id, { withCredentials: true })
+        .then((res) => {
+          console.log(res);
+          ModalWindows.showModal("Заказ удалён!", true);
           this.getOrders();
         });
       }
@@ -1060,7 +1075,7 @@ body {
     background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder, .records {
+.createOrder, .deleteOrder, .records {
   margin-top: 20px;
 
   height: 40px;
@@ -1074,6 +1089,18 @@ body {
   font-family: sans-serif;
 
   cursor: pointer;
+}
+
+.deleteOrder {
+  color: var(--deleteButton-background);
+  border: 1px solid var(--deleteButton-background);
+}
+
+.deleteOrder:hover {
+  color: var(--text-color);
+  background: var(--deleteButton-background);
+
+  transition: all .1s ease-in-out;
 }
 
 .records {
