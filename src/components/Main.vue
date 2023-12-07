@@ -282,8 +282,8 @@ export default {
   },
 
   methods: {
-    userIsAdmin(){
-      return false //this.userInfo.role === "globaladmin";
+    userIsAdmin() {
+      return true //this.userInfo.role === "globaladmin";
     },
 
     updateShowInList(car, value) {
@@ -613,7 +613,7 @@ export default {
     },
 
     isOrderSelected(obj) {
-      if (obj && Object.keys(obj).length === 0 && obj.constructor === Object){
+      if (obj && Object.keys(obj).length === 0 && obj.constructor === Object) {
         return true
       }
       else false
@@ -681,8 +681,8 @@ export default {
 
   mounted() {
     setTimeout(() => {
-      //this.getUserJWT();
-      //this.getUserInfo();
+      this.getUserJWT();
+      this.getUserInfo();
       this.getCars();
       this.getOrders();
     }, 100);
