@@ -39,38 +39,45 @@
       </div>
 
       <div class="info">
-        <div class="panel-header" v-if="!editing"> НОВАЯ ЗАЯВКА </div>
-        <div class="panel-header" v-if="editing"> ИНФОРМАЦИЯ </div>
-        <p class="author" v-if="editing"> Автор заявки: {{ selectedOrder.username }} </p>
-        <p class="author" v-if="!editing"> Автор заявки: {{ userInfo.displayName }} </p>
-        <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
-        <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
-        <p class="dateRent"> Дата арендования: </p>
-        <div class="dateSettings">
-          <tr> 
-            <td> Начало аренды: </td> 
-            <td> 
-              <input id="settingDateFrom" v-if="!editing" type="date"> 
-              <input id="settingDateFromEdit" v-if="editing" v-model="selectedOrder.beginDate" type="date"> 
-            </td> 
-          </tr>
-          <tr> 
-            <td> Конец аренды: </td> 
-            <td> 
-              <input id="settingDateTo" v-if="!editing" type="date"> 
-              <input id="settingDateToEdit" v-if="editing" v-model="selectedOrder.endDate" type="date"> 
-            </td> 
-          </tr>
+        <div class="panel-header"> ИНФОРМАЦИЯ </div>
+            <div class="square">
+              <div class="inter-square">
+                <div style="display: flex; justify-content: space-between;">
+                  <div :class = "{ 'rectangleGreen': selectedOrder.status === 'Одобрен', 'rectangleYellow': selectedOrder.status === 'В обработке'}">
+                    <p>{{ selectedOrder.status ? selectedOrder.status : "" }}</p>
+                  </div>
+                  <button :class = "{'clearSelectedFull': Object.keys(selectedOrder).length === 0, 'clearSelectedHalf': Object.keys(selectedOrder).length !== 0}" @click.prevent="clearSelected()">Новая заявка</button>
+                </div>
+                <div :class = "{'block-order': isBlockElementForEditingOrder()}">
+                  <div class = "infopanel">
+                    <p class="author"> Автор заявки: {{ selectedOrder.username }} </p>
+                    <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
+                    <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
+                    <p class="dateRent"> Дата арендования: </p>
+                    <div class="dateSettings">
+                      <tr>
+                        <td> Начало аренды: </td>
+                        <td> <input id="settingDateFrom" type="date"> </td>
+                      </tr>
+                      <tr>
+                        <td> Конец аренды: </td>
+                        <td> <input id="settingDateTo" type="date"> </td>
+                      </tr>
+                    </div>
+                  </div>
+                  <div class="description">
+                    <p> Описание заявки </p>
+                    <textarea id="orderDesc"/>
+                  </div>
+                  <div class="controller-order">
+                    <button class="createOrder" @click.prevent="createOrder()"> {{ editingOrder ? "Сохранить" : "Создать"}} </button>
+                    <button class="deleteOrder" @click.prevent="deleteOrder()" :class="{ 'ready-delete': readyForRemoveOrder}"> Удалить заказ </button>
+                  </div>
+                </div>
+              </div>
+          </div>
         </div>
-        <div class="description">
-          <p> Описание заявки </p>
-          <textarea id="orderDesc" v-if="!editing" v-model="orderInfo.description"/>
-          <textarea id="orderDesc" v-if="editing" v-model="selectedOrder.desc"/>
-        </div>
-        <button class="createOrder" v-if="editing" @click.prevent="editOrder()"> Редактировать заказ </button> 
-        <button class="deleteOrder" v-if="editing && userIsAdmin()" @click.prevent="deleteOrder()"> Удалить заказ </button> 
-        <button class="createOrder" v-if="!editing" @click.prevent="createOrder()"> Новый заказ </button> 
-      </div>
+
 
       <div class="lastPanel">
         <div class="availableCars">
@@ -147,6 +154,21 @@ import { CalendarView, CalendarViewHeader } from "vue-simple-calendar"
 import "@/css/style-calendar.css"
 import "@/css/default.css"
 
+const API_LINKS = {
+  CARS_GET: `cars/all`,
+  CAR_GET: `cars/`,
+  CAR_DELETE: `cars/`,
+  CAR_POST: `cars/create`,
+  CAR_PATCH: `cars/edit`,
+  CAR_PLAN_GET: `orders/in-month`,
+
+  ORDERS_GET: `orders/all`,
+  ORDER_GET: `orders/`,
+  ORDER_DELETE: `orders/`,
+  ORDER_PATCH: `orders/edit`,
+  ORDERS_POST: `orders/create`
+}
+
 export default {
   name: 'Main',
   components: {
@@ -160,48 +182,32 @@ export default {
   data() {
     return {
         showCreateOrderDialog: false,
-        ///*'https://portal.npf-isb.ru*/ 'http://localhost:4451
-        USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
-        userJWT: () => [], 
- 
-        USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
-        userInfo: () => [], 
- 
-        AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
- 
-        CAR_POST: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/create',
-        CARS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/all',
-        CAR_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/cars/',
-        CAR_PATCH: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/edit',
-        CAR_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/cars/',
-        cars: () => [], 
- 
-        CAR_PLAN_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/in-month',
+        // https://portal.npf-isb.ru   http://localhost:4451
+        PARRENT_URL: `https://portal.npf-isb.ru/carsharing/api/`,
 
-        ORDERS_POST: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/create',
-        ORDERS_GET: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/all',
-        ORDER_GET: 'https://portal.npf-isb.ru/carsharing/api/employee/orders/',
-        ORDER_PATCH: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/edit',
-        ORDER_DELETE: 'https://portal.npf-isb.ru/carsharing/api/manager/orders/',
+        USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
+        USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
+        AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
+
+        userJWT: () => [], 
+        userInfo: () => [], 
+        cars: () => [], 
         orders: () => [],
         filteredOrders: () => [],
-        showActual: true,
 
+        showActual: true,
         searchTextOrder: '',
 
         selectedOrder: {},
         selectedCar: {},
-        orderInfo: {
-          car: null,
-          desc: "Тестовое описание",
-          beginDate: "",
-          endDate: ""
-        },
         showDate: new Date(),
         currentPlan: [],
-
-        editing: false,
         editingCar: {},
+
+        editingOrder: false,
+        readyForRemoveCar: false,
+        readyForRemoveOrder: false,
+
         emptyCar: {
           desc: "",
           id: -1,
@@ -209,7 +215,13 @@ export default {
           name: "Новая машина",
           number: ""
         },
-        readyForRemoveCar: false,
+
+        orderInfo: {
+          car: null,
+          desc: "Тестовое описание",
+          beginDate: "",
+          endDate: ""
+        },
     }
   },
 
@@ -271,7 +283,7 @@ export default {
 
   methods: {
     userIsAdmin(){
-      return true //this.userInfo.role === "globaladmin";
+      return false //this.userInfo.role === "globaladmin";
     },
 
     updateShowInList(car, value) {
@@ -284,6 +296,10 @@ export default {
 
     intToBool(int) {
       return int === 1 || int;
+    },
+
+    getFullUrl(secondPartUrl) {
+      return this.PARRENT_URL + (this.userIsAdmin() ? 'manager/' : 'employee/') + secondPartUrl
     },
 
     shareCarPanel(carId) {
@@ -325,7 +341,7 @@ export default {
             isShowInList: car.isShowInList === 1,
             desc: car.desc,
           }
-          axios.post(this.CAR_POST, carForSave, { withCredentials: true })
+          axios.post(this.getFullUrl(API_LINKS.CAR_POST), carForSave, { withCredentials: true })
           .then((res) => {
             this.cars[this.cars.findIndex(car => car.id === -2)] = { ...res.data };
             ModalWindows.showModal('Создана машина ' + res.data.name, true);
@@ -339,7 +355,7 @@ export default {
             isShowInList: car.isShowInList === 1,
             desc: car.desc,
           }
-          axios.patch(this.CAR_PATCH, carForSave, { withCredentials: true })
+          axios.patch(this.getFullUrl(API_LINKS.CAR_PATCH), carForSave, { withCredentials: true })
           .then((res) => {
             ModalWindows.showModal('Отредактирована машина ' + res.data.name, true);
             this.doAfterSaveCar(isEdit);
@@ -347,14 +363,13 @@ export default {
         }
       }
       catch (e) {
-        console.log(e);
         ModalWindows.showModal(e.response.data.message, false);
       }
     },
 
     deleteCar(car) {
       if (this.readyForRemoveCar) {
-        axios.delete(this.CAR_DELETE + car.id, { withCredentials: true })
+        axios.delete(this.getFullUrl(API_LINKS.CAR_DELETE) + car.id, { withCredentials: true })
         .then((res) => {
           this.readyForRemoveCar = false;
           ModalWindows.showModal('Удалена машина ' + car.name, false);
@@ -380,7 +395,7 @@ export default {
 
     setInCalendarPlanCar(carId, dateCalendar) {
       const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
-      axios.get(this.CAR_PLAN_GET + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
+      axios.get(this.getFullUrl(API_LINKS.CAR_PLAN_GET) + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
       .then((res) => {
           this.currentPlan = res.data.ordersPerMonth;
       })
@@ -403,7 +418,6 @@ export default {
       axios.get(this.USER_JWT_GET, { withCredentials: true })
       .then((res) => {
         this.userJWT = res.data;
-        console.log(this.userJWT);
       },
       () => {
         this.createAuthWindow();
@@ -414,7 +428,6 @@ export default {
       axios.get(this.USER_INFO_GET, { withCredentials: true })
       .then((res) => {
         this.userInfo = res.data;
-        console.log(this.userInfo);
       })
     },
 
@@ -510,7 +523,7 @@ export default {
     },
 
     getCars() {
-      axios.get(this.CARS_GET, { withCredentials: true })
+      axios.get(this.getFullUrl(API_LINKS.CARS_GET), { withCredentials: true })
       .then((res) => {
           this.cars = res.data
           if (this.cars && this.cars[0])  {
@@ -523,22 +536,21 @@ export default {
     },
 
     getCar(carID) {
-      axios.get(this.CAR_GET + carID, { withCredentials: true })
+      axios.get(this.getFullUrl(API_LINKS.CAR_GET) + carID, { withCredentials: true })
       .then((res) => {
         return res.data
       })
     },
 
     getOrder(order) {
-      this.editing = true;
+      this.editingOrder = true;
       this.selectedOrder = order;
       const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
       if (selectedCarByOrder) {
         this.selectCar(selectedCarByOrder);
         this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
-        console.log(this.selectedOrder);
       }
-      axios.get(this.ORDER_GET + order.id, { withCredentials: true })
+      axios.get(this.getFullUrl(API_LINKS.ORDER_GET) + order.id, { withCredentials: true })
       .then((res) => {
         this.orderInfo = res.data;  
         this.getCar(this.orderInfo.car);
@@ -592,7 +604,7 @@ export default {
     },
 
     getOrders() {
-      axios.get(this.ORDERS_GET, { withCredentials: true })
+      axios.get(this.getFullUrl(API_LINKS.ORDERS_GET), { withCredentials: true })
       .then((res) => {
           this.orders = res.data
           const actualDate = new Date();
@@ -600,61 +612,77 @@ export default {
       });
     },
 
-    async createOrder() {
-      this.orderInfo.car = this.selectedCar.id;
-      this.orderInfo.desc = document.getElementById('orderDesc').value;
-      this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
-      this.orderInfo.endDate = document.getElementById('settingDateTo').value;
-      try {
-        await axios.post(this.ORDERS_POST, this.orderInfo, { withCredentials: true })
-        .then((res) => {
-          console.log(res);
-          ModalWindows.showModal("Заказ создан!", true);
-          this.getOrders();
-        });
+    isOrderSelected(obj) {
+      if (obj && Object.keys(obj).length === 0 && obj.constructor === Object){
+        return true
       }
-      catch (e) {
-        console.log(e);
-        ModalWindows.showModal(e.response.data.message, false);
+      else false
+    },
+
+    createOrder() {
+      if (this.isOrderSelected(this.selectedOrder) && this.editingOrder == false) {
+        this.orderInfo.car = this.selectedCar.id;
+        this.orderInfo.desc = document.getElementById('orderDesc').value;
+        this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
+        this.orderInfo.endDate = document.getElementById('settingDateTo').value;
+        try {
+          axios.post(this.getFullUrl(API_LINKS.ORDERS_POST), this.orderInfo, { withCredentials: true })
+          .then((res) => {
+            ModalWindows.showModal("Заказ создан!", true);
+            this.getOrders();
+          });
+        } catch (e) {
+          ModalWindows.showModal(e.response.data.message, false);
+        }
+      } else {
+        this.orderInfo.car = this.selectedCar.id;
+        this.orderInfo.desc = document.getElementById('orderDesc').value;
+        this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
+        this.orderInfo.endDate = document.getElementById('settingDateTo').value
+        try{
+          axios.patch(this.getFullUrl(API_LINKS.ORDER_PATCH), this.orderInfo, { withCredentials: true })
+          .then((res) => {
+            ModalWindows.showModal("Заказ сохранен!", true);
+            this.getOrders();
+          });
+        } catch (e) {
+          ModalWindows.showModal(e, false);
+        }
       }
     },
 
-    async editOrder() {
-      try {
-        await axios.patch(this.ORDER_PATCH, this.selectedOrder)
-        .then((res) => {
-          console.log(res);
-          ModalWindows.showModal("Заказ редактирован!", true);
+    deleteOrder(order) {
+      if (this.readyForRemoveOrder) {
+        axios.delete(this.getFullUrl(API_LINKS.ORDER_DELETE) + this.selectedOrder.id, {withCredentials: true})
+        .then((res) =>{
+          this.readyForRemoveOrder = false;
+          ModalWindows.showModal('Заказ пользователя ' + this.selectedOrder.username + ' удален');
           this.getOrders();
-        });
+        })
+        .catch((e) => {
+          this.readyForRemoveOrder = false;
+          ModalWindows.showModal(e.response.data.message, false);
+        })
       }
-      catch (e) {
-        console.log(e);
-        ModalWindows.showModal(e.response.data.message, false);
-      }
+      this.readyForRemoveOrder = true;
     },
 
-    async deleteOrder() {
-      try {
-        axios.delete(this.ORDER_DELETE+this.selectedOrder.id, { withCredentials: true })
-        .then((res) => {
-          console.log(res);
-          ModalWindows.showModal("Заказ удалён!", true);
-          this.getOrders();
-        });
-      }
-      catch (e) {
-        console.log(e);
-        ModalWindows.showModal(e.response.data.message, false);
-      }
-    }
+    clearSelected() {
+      this.selectedOrder = {};
+      this.editingOrder = false;
+    },
+
+    isBlockElementForEditingOrder() {
+      console.log(!this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status == 'Одобрен')
+      return !this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status == 'Одобрен'
+    },
 
   },
 
   mounted() {
     setTimeout(() => {
-      this.getUserJWT();
-      this.getUserInfo();
+      //this.getUserJWT();
+      //this.getUserInfo();
       this.getCars();
       this.getOrders();
     }, 100);
@@ -951,6 +979,10 @@ body {
 
 .mainWindow .history, .mainWindow .info {
   height: 820px;
+}
+
+.modalWindow .history {
+  min-width: 322px;
   width: 20%;
 }
 
@@ -960,6 +992,7 @@ body {
 
 .mainWindow .lastPanel {
   width: 49%;
+  min-width: 640px;
 }
 
 .mainWindow .lastPanel .calendar {
@@ -1075,11 +1108,10 @@ body {
     background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder, .deleteOrder, .records {
+.createOrder, .records, .deleteOrder {
   margin-top: 20px;
 
   height: 40px;
-  width: 275px;
 
   color: var(--main-color);
   background: none;
@@ -1089,6 +1121,19 @@ body {
   font-family: sans-serif;
 
   cursor: pointer;
+}
+
+.controller-order {
+  display: flex; 
+  justify-content: space-between; 
+  bottom: 10px; 
+  left: 10px; 
+  position: absolute;
+  right: 10px;
+}
+
+.createOrder, .deleteOrder {
+  width: 45%;
 }
 
 .deleteOrder {
@@ -1107,7 +1152,7 @@ body {
   width: 100%;
 }
 
-.createOrder:hover, .records:hover {
+.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover {
   color: var(--text-color);
   background: var(--main-color);
 
@@ -1116,6 +1161,93 @@ body {
 
 .author, .selectedCar, .dateRent, .dateSettings, .carNumber, .description {
   font-size: 18px;
+}
+
+.mainWindow .info .square {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  background: none;
+  margin-left: -15px;
+  border: 1px solid var(--border-color);
+}
+
+.mainWindow .info .block-order {
+  pointer-events: none;
+}
+
+.mainWindow .info .inter-square {
+  padding: 10px;
+  width: 100%;
+  height: 732px;
+  position: relative;
+}
+
+.mainWindow .info .rectangleGreen, .mainWindow .info .rectangleYellow {
+  flex-grow: 0px;
+  position: absolute;
+  display: inline-block;
+
+  height: 38px;
+  width: 100%;
+
+  position: relative;
+  border: 1px solid var(--main-color);
+
+  display: flex;
+  justify-content: flex-start;
+  align-items: center; 
+  font-family: sans-serif; 
+}
+
+.mainWindow .info .rectangleGreen {
+  font-size: 18px;
+  color: var(--div-color);
+  background-color: var(--main-color);
+}
+
+.mainWindow .info .rectangleGreen p {
+  padding-left: 30px;
+}
+
+.mainWindow .info .rectangleYellow p {
+  padding-left: 30px;
+}
+
+.mainWindow .info .rectangleYellow {
+  font-size: 19px;
+  color: var(--main-color);
+}
+
+.mainWindow .info .clearSelectedFull, .mainWindow .info .clearSelectedHalf {
+  background-color: var(--div-color);
+  flex-grow: 0;
+  display: inline-block;
+
+  height: 40px;
+
+  color: var(--main-color);
+
+  border: 1px solid var(--main-color);
+
+  font-family: sans-serif;
+
+  transition: all 0.3s ease-in-out 0.1s;
+}
+
+.mainWindow .info .clearSelectedFull {
+  width: calc(100% - 20px);
+  position: absolute;
+  right: 10px;
+  font-size: 19px;
+}
+
+.mainWindow .info .clearSelectedHalf {
+  position: absolute;
+  right: 10px;
+  width: 20%;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 .mainWindow .info .dateSettings {
@@ -1127,7 +1259,6 @@ body {
 }
 
 .info .description textarea {
-  height: 285px;
   width: 90%;
 
   resize: none;
@@ -1424,7 +1555,7 @@ body {
   cursor: pointer;
 }
 
-.car .body .delete-car.ready-delete {
+.ready-delete {
   color: var(--text-color);
   background-color: var(--deleteButton-background);
   transition: all .1s ease-in-out;
