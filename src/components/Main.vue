@@ -16,7 +16,7 @@
           </div>
         </div>
         <div class="orderList" ref="orderListRef" :class="{ 'orderList-employee': !userIsAdmin() }">
-          <div class="order" @click="getOrder(order)" v-for="order in filteredItems" :key="order.id" :data-key="order.id" :class="{ 'selected': order.id === selectedOrder.id }">
+          <div class="order" @click="getOrder(order.id)" v-for="order in filteredItems" :key="order.id" :data-key="order.id" :class="{ 'selected': order.id === selectedOrder.id }">
             <div class="header">
               <p class="status">{{ order.status }}</p>
               <p class="auto-number">{{ order.numberCar }}</p>
@@ -30,7 +30,7 @@
           <div class="noOrders" v-if="orders.length == 0">
             <img src="../assets/icons/noOrders.png" width="74" height="74"> 
             <p> Заказов нет! </p>
-            <p> Cоздайте новый по кнопке ниже </p>
+            <p> Cоздайте новый </p>
           </div>
         </div>
         <div style="padding-right: 32px">
@@ -40,44 +40,65 @@
 
       <div class="info">
         <div class="panel-header"> ИНФОРМАЦИЯ </div>
+          <div :class = "{'block-order': isBlockElementForEditingOrder()}">
             <div class="square">
               <div class="inter-square">
                 <div style="display: flex; justify-content: space-between;">
-                  <div :class = "{ 'rectangleGreen': selectedOrder.status === 'Одобрен', 'rectangleYellow': selectedOrder.status === 'В обработке'}">
-                    <p>{{ selectedOrder.status ? selectedOrder.status : "" }}</p>
+                  <div class = "rectangleGreen">
+                    <div v-if="!userIsAdmin()" style="padding-left: 10px;">{{ selectedOrder.status }}</div>
+                    <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin()" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
                   </div>
-                  <button :class = "{'clearSelectedFull': Object.keys(selectedOrder).length === 0, 'clearSelectedHalf': Object.keys(selectedOrder).length !== 0}" @click.prevent="clearSelected()">Новая заявка</button>
+                  <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(editingOrder ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
-                <div :class = "{'block-order': isBlockElementForEditingOrder()}">
-                  <div class = "infopanel">
-                    <p class="author"> Автор заявки: {{ selectedOrder.username }} </p>
-                    <p class="selectedCar"> Выбранная машина: {{ selectedCar.name }} </p>
-                    <p class="carNumber"> Гос. номер: {{  selectedCar.number }} </p>
-                    <p class="dateRent"> Дата арендования: </p>
-                    <div class="dateSettings">
-                      <tr>
-                        <td> Начало аренды: </td>
-                        <td> <input id="settingDateFrom" type="date"> </td>
-                      </tr>
-                      <tr>
-                        <td> Конец аренды: </td>
-                        <td> <input id="settingDateTo" type="date"> </td>
-                      </tr>
+                  <div class = "info-order-car">
+                    <div class="auto">Автомобиль: </div>
+                    <div style="width: 100%; padding-left: 5px; margin-top: -3px; font-size: 16px;">
+                      <div v-if="carIsNotFindInList()" style="padding-left: 10px; margin-top: 3px;">Скрыт</div>
+                      <vue-select style="max-height: 34px;" :clearable="false" label="label" v-if="!carIsNotFindInList()" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
+                      <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : selectedCar.desc" />
                     </div>
                   </div>
-                  <div class="description">
-                    <p> Описание заявки </p>
-                    <textarea id="orderDesc"/>
+                  <div class="info-order">
+                    <div class="dateSettings">
+                      <div style="min-width: 130px;">
+                        Командировка:
+                      </div> 
+                      <div style="width: 100%;">
+                        <div class="date-input" style="margin-left: 10px;">
+                          <div>
+                            <label for="settingDateFrom">С</label>
+                          </div>
+                          <div>
+                            <input id="settingDateFrom" type="date" v-model="selectedOrder.beginDate" @change="addAndEditOrderCalendar()"> 
+                          </div>
+                        </div> 
+                        <div class="date-input">
+                          <div>
+                            <label for="settingDateTo">По</label>
+                          </div>
+                          <div>
+                            <input id="settingDateTo" type="date" v-model="selectedOrder.endDate" @change="addAndEditOrderCalendar()">
+                          </div>
+                        </div>
+                      </div> 
+                    </div>
+                    <div>
+                      <div class="comment">Комментарий: </div>
+                      <textarea id="orderDesc" class="description" v-model="selectedOrder.desc" />
+                    </div>
+                    <div>
+                      <div class="author"> Автор заявки: {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </div>
+                      <div class="admin"> Администратор: {{ selectedOrder.adminName }} </div>
+                    </div>
                   </div>
                   <div class="controller-order">
                     <button class="createOrder" @click.prevent="createOrder()"> {{ editingOrder ? "Сохранить" : "Создать"}} </button>
-                    <button class="deleteOrder" @click.prevent="deleteOrder()" :class="{ 'ready-delete': readyForRemoveOrder}"> Удалить заказ </button>
+                    <button class="deleteOrder" v-if="editingOrder" @click.prevent="deleteOrder()" :class="{ 'ready-delete': readyForRemoveOrder}"> Удалить заказ </button>
                   </div>
                 </div>
               </div>
           </div>
         </div>
-
 
       <div class="lastPanel">
         <div class="availableCars">
@@ -189,6 +210,13 @@ export default {
         USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
+        STATUS_ORDER: {
+          DONE: 'Одобрен',
+          DENY: 'Отклонен',
+          PROCESS: 'В обработке'
+        },
+        statusesList: () => [], 
+
         userJWT: () => [], 
         userInfo: () => [], 
         cars: () => [], 
@@ -203,6 +231,7 @@ export default {
         showDate: new Date(),
         currentPlan: [],
         editingCar: {},
+        editingOrderHolder: {},
 
         editingOrder: false,
         readyForRemoveCar: false,
@@ -220,6 +249,15 @@ export default {
           car: null,
           desc: "Тестовое описание",
           beginDate: "",
+          endDate: ""
+        },
+
+        newOrderPlan: {
+          id: "-1",
+          title: "",
+          status: 'В обработке',
+          classes: ["wait"],
+          startDate: "",
           endDate: ""
         },
     }
@@ -283,7 +321,7 @@ export default {
 
   methods: {
     userIsAdmin() {
-      return true //this.userInfo.role === "globaladmin";
+      return this.userInfo.role === "globaladmin";
     },
 
     updateShowInList(car, value) {
@@ -393,11 +431,12 @@ export default {
       this.showDate = dateCalendar;
     },
 
-    setInCalendarPlanCar(carId, dateCalendar) {
+    async setInCalendarPlanCar(carId, dateCalendar) {
       const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
       axios.get(this.getFullUrl(API_LINKS.CAR_PLAN_GET) + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
       .then((res) => {
           this.currentPlan = res.data.ordersPerMonth;
+          this.addAndEditOrderCalendar();
       })
     },
 
@@ -424,8 +463,8 @@ export default {
       });
     },
 
-    getUserInfo() {
-      axios.get(this.USER_INFO_GET, { withCredentials: true })
+    async getUserInfo() {
+      await axios.get(this.USER_INFO_GET, { withCredentials: true })
       .then((res) => {
         this.userInfo = res.data;
       })
@@ -525,7 +564,10 @@ export default {
     getCars() {
       axios.get(this.getFullUrl(API_LINKS.CARS_GET), { withCredentials: true })
       .then((res) => {
-          this.cars = res.data
+          this.cars = res.data.map(it => {
+            it.label = '[' + it.number + '] ' + it.name;
+            return it;
+          });
           if (this.cars && this.cars[0])  {
             this.selectCar(this.cars[0]);
           }
@@ -535,6 +577,10 @@ export default {
       });
     },
 
+    getCarsList() {
+      return this.cars.length ? this.cars.filter(it => it.id !== -1 && it.id !== -2) : [];
+    },
+
     getCar(carID) {
       axios.get(this.getFullUrl(API_LINKS.CAR_GET) + carID, { withCredentials: true })
       .then((res) => {
@@ -542,7 +588,9 @@ export default {
       })
     },
 
-    getOrder(order) {
+    getOrder(orderId) {
+      const order = this.orders.find(obj => obj.id === orderId);
+      this.revertChangeInOrder(order)
       this.editingOrder = true;
       this.selectedOrder = order;
       const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
@@ -555,17 +603,69 @@ export default {
         this.orderInfo = res.data;  
         this.getCar(this.orderInfo.car);
       });
+      this.addAndEditOrderCalendar();
+    },
+
+    selectCarFromOrder() {
+      this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+      this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+    },
+
+    revertChangeInOrder(order) {
+      if (Object.keys(this.editingOrderHolder).length === 0) {
+        this.editingOrderHolder = { ...order };
+      } else if (!order.id || order.id !== this.editingOrderHolder.id) {
+        this.orders[this.orders.findIndex(obj => obj.id === this.editingOrderHolder.id)] = { ...this.editingOrderHolder };
+        this.filteredItems[this.filteredItems.findIndex(obj => obj.id === this.editingOrderHolder.id)] = { ...this.editingOrderHolder };
+        this.selectedOrder = { ...this.editingOrderHolder };
+        this.editingOrderHolder = { ...order };
+        this.revertCalendarAfterChangeInOrder();
+      }
+    },
+
+    revertCalendarAfterChangeInOrder() {
+      const findPlan = this.currentPlan && this.selectedOrder.id ? 
+        this.currentPlan.find(it => it.id === this.selectedOrder.id.toString()) : false;
+      if (findPlan) {
+        findPlan.startDate = this.selectedOrder.beginDate;
+        findPlan.endDate = this.selectedOrder.endDate;
+      }
+    },
+
+    addAndEditOrderCalendar() {
+      const findPlan = this.currentPlan ? (this.selectedOrder.id ? 
+        this.currentPlan.find(it => it.id === this.selectedOrder.id.toString()) : 
+        this.currentPlan.find(it => it.id === "-1")) : false;
+      if (findPlan) {
+        findPlan.startDate = this.selectedOrder.beginDate;
+        findPlan.endDate = this.selectedOrder.endDate;
+        const newOrderPlanForRemove = this.currentPlan.findIndex(it => it.id === "-1");
+        if (newOrderPlanForRemove !== -1 && this.selectedOrder.id) {
+          this.currentPlan.splice(newOrderPlanForRemove, 1);
+        }
+      } else {
+        this.newOrderPlan.classes = this.selectedOrder.status == this.STATUS_ORDER.DONE ? ["ready", "selected"] : ["wait", "selected"];
+        this.newOrderPlan.title = this.editingOrder ? this.selectedOrder.username : this.userInfo.displayName;
+        this.newOrderPlan.startDate = this.selectedOrder.beginDate;
+        this.newOrderPlan.endDate = this.selectedOrder.endDate;
+        if (!this.currentPlan) {
+          this.currentPlan = [this.newOrderPlan]
+        } else {
+          this.currentPlan.push(this.newOrderPlan);
+        }
+      }
+      this.currentPlan = this.currentPlan;
     },
     
 		onClickOrderOnCalendar(clickOrder) {
-      const findedOrder = this.orders.find(it => it.id.toString() === clickOrder.id);
+      const findedOrder = this.orders.length > 0 ? this.orders.find(it => it.id.toString() === clickOrder.id) : false;
       const actualDate = new Date();
       if (findedOrder) {
         this.searchTextOrder = '';
         if (this.showActual && new Date(findedOrder.endDate) < actualDate) {
           this.showActual = false;
         }
-        this.getOrder(findedOrder);
+        this.getOrder(findedOrder.id);
         this.scrollElementInList(findedOrder, this.$refs.orderListRef, false);
       }
 		},
@@ -597,7 +697,6 @@ export default {
               window.requestAnimationFrame(animateScroll);
             }
           };
-
           window.requestAnimationFrame(animateScroll);
         }
       }
@@ -619,47 +718,69 @@ export default {
       else false
     },
 
-    createOrder() {
-      if (this.isOrderSelected(this.selectedOrder) && this.editingOrder == false) {
+    setSaveStatusOrder() {
+      this.orderInfo.car = this.editingOrderHolder ? this.editingOrderHolder.car : this.selectedOrder.car;
+      this.orderInfo.desc = this.editingOrderHolder ? this.editingOrderHolder.desc : this.selectedOrder.desc;
+      this.orderInfo.beginDate = this.editingOrderHolder ? this.editingOrderHolder.beginDate : this.selectedOrder.beginDate;
+      this.orderInfo.endDate = this.editingOrderHolder ? this.editingOrderHolder.endDate : this.selectedOrder.endDate;
+      this.orderInfo.status = this.selectedOrder.status;
+      axios.patch(this.getFullUrl(API_LINKS.ORDER_PATCH), this.orderInfo, { withCredentials: true })
+        .then(() => {
+          ModalWindows.showModal("Статус установлен!", true);
+          this.getOrders();
+          this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+          this.editingOrderHolder.status = this.selectedOrder.status;
+        }).catch((e) => {
+          this.selectedOrder.status = this.editingOrderHolder.status;
+          ModalWindows.showModal(e.response.data.message, false);
+        })
+    },
+
+    async createOrder() {
+      if (!this.selectedOrder.id && this.editingOrder == false) {
         this.orderInfo.car = this.selectedCar.id;
         this.orderInfo.desc = document.getElementById('orderDesc').value;
-        this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
-        this.orderInfo.endDate = document.getElementById('settingDateTo').value;
+        this.orderInfo.beginDate = this.selectedOrder.beginDate;
+        this.orderInfo.endDate = this.selectedOrder.endDate;
         try {
-          axios.post(this.getFullUrl(API_LINKS.ORDERS_POST), this.orderInfo, { withCredentials: true })
-          .then((res) => {
-            ModalWindows.showModal("Заказ создан!", true);
-            this.getOrders();
-          });
+          const res = await axios.post(this.getFullUrl(API_LINKS.ORDERS_POST), this.orderInfo, { withCredentials: true });
+          ModalWindows.showModal("Заказ создан!", true);
+          this.getOrders();
+          await this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+          this.onClickOrderOnCalendar(res.data);
+          this.editingOrderHolder = { ...res};
         } catch (e) {
+          this.readyForRemoveOrder = false;
           ModalWindows.showModal(e.response.data.message, false);
         }
+        this.editingOrder = true;
       } else {
         this.orderInfo.car = this.selectedCar.id;
         this.orderInfo.desc = document.getElementById('orderDesc').value;
-        this.orderInfo.beginDate = document.getElementById('settingDateFrom').value;
-        this.orderInfo.endDate = document.getElementById('settingDateTo').value
-        try{
-          axios.patch(this.getFullUrl(API_LINKS.ORDER_PATCH), this.orderInfo, { withCredentials: true })
-          .then((res) => {
+        this.orderInfo.beginDate = this.selectedOrder.beginDate;
+        this.orderInfo.endDate = this.selectedOrder.endDate;
+        axios.patch(this.getFullUrl(API_LINKS.ORDER_PATCH), this.orderInfo, { withCredentials: true })
+          .then(() => {
             ModalWindows.showModal("Заказ сохранен!", true);
             this.getOrders();
-          });
-        } catch (e) {
-          ModalWindows.showModal(e, false);
-        }
+            this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+            this.editingOrderHolder = this.selectedOrder;
+          }).catch((e) => {
+            ModalWindows.showModal(e.response.data.message, false);
+          })
       }
     },
 
-    deleteOrder(order) {
+    deleteOrder() {
       if (this.readyForRemoveOrder) {
         axios.delete(this.getFullUrl(API_LINKS.ORDER_DELETE) + this.selectedOrder.id, {withCredentials: true})
-        .then((res) =>{
+        .then(() =>{
           this.readyForRemoveOrder = false;
           ModalWindows.showModal('Заказ пользователя ' + this.selectedOrder.username + ' удален');
+          this.clearSelected();
           this.getOrders();
-        })
-        .catch((e) => {
+          this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+        }).catch((e) => {
           this.readyForRemoveOrder = false;
           ModalWindows.showModal(e.response.data.message, false);
         })
@@ -668,21 +789,34 @@ export default {
     },
 
     clearSelected() {
+      this.revertChangeInOrder({});
       this.selectedOrder = {};
       this.editingOrder = false;
+      this.newOrderPlan = {
+          id: "-1",
+          title: "",
+          status: this.STATUS_ORDER.PROCESS,
+          classes: ["wait"],
+          startDate: "",
+          endDate: ""
+        };
     },
 
     isBlockElementForEditingOrder() {
-      console.log(!this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status == 'Одобрен')
-      return !this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status == 'Одобрен'
+      return !this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status !== this.STATUS_ORDER.PROCESS || this.carIsNotFindInList()
     },
+
+    carIsNotFindInList() {
+      return this.editingOrder && this.cars.length > 0 && !this.cars.find(car => car.id === this.selectedOrder.car);
+    }
 
   },
 
   mounted() {
-    setTimeout(() => {
-      this.getUserJWT();
-      this.getUserInfo();
+    this.statusesList = [this.STATUS_ORDER.DONE, this.STATUS_ORDER.PROCESS, this.STATUS_ORDER.DENY]
+    setTimeout(async () => {
+      await this.getUserJWT();
+      await this.getUserInfo();
       this.getCars();
       this.getOrders();
     }, 100);
@@ -691,6 +825,7 @@ export default {
 </script>
 
 <style>
+@import "vue-select/dist/vue-select.css";
 
 :root {
   --main-font: "Open Sans", "Segoe UI", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;;
@@ -965,6 +1100,8 @@ body {
 }
 
 .mainWindow .history, .mainWindow .info, .mainWindow .lastPanel {
+  min-width: 322px;
+  width: 20%;
   padding-left: 32px;
   margin: 10px;
 
@@ -983,15 +1120,33 @@ body {
 
 .modalWindow .history {
   min-width: 322px;
-  width: 20%;
+  width: 26%;
 }
 
 .mainWindow .info {
-  width: 25%;
+  min-width: 360px;
+  width: 23%;
+}
+
+.block-order .info-order .description, .block-order .dateSettings input, .block-order .deleteOrder, .block-order .createOrder{
+  background-color: #fafafa !important;
+}
+.block-order .comment, .block-order .description{
+  height: auto !important;
+}
+.block-order .createOrder, .block-order .deleteOrder{
+  border: 1px solid #9e9e9e !important;
+  color: #9e9e9e !important;
+}
+.block-order .dateSettings input, .block-order .info-order .description{
+  border: none !important;
+}
+.blocked-order .square{
+  background-color: #fafafa !important;
 }
 
 .mainWindow .lastPanel {
-  width: 49%;
+  width: 51%;
   min-width: 640px;
 }
 
@@ -1012,7 +1167,7 @@ body {
 }
 
 .mainWindow .history .search-box {
-  display: flex; 
+  display: flex;
   padding-right: 38px;
   top: -12px;
   position: relative;
@@ -1027,8 +1182,8 @@ body {
 .mainWindow .history .search-area {
   font-size: 15px;
   border: 0.5px solid var(--text-color-hover);
-  border-radius: 4px; 
-  padding: 2px 2px; 
+  border-radius: 4px;
+  padding: 2px 2px;
   color: var(--main-color);
   outline: none;
   width: 100%;
@@ -1086,7 +1241,7 @@ body {
 .orderList {
   padding-right: 15px;
 
-  height: 630px; 
+  height: 630px;
 
   overflow-x: clip;
   overflow-y: scroll;
@@ -1097,15 +1252,16 @@ body {
 }
 
 .ordersList::-webkit-scrollbar-track {
-      background-color: var(--left-side-scrollbar-track);
-  }
-.ordersList::-webkit-scrollbar {
-    width: 10px;
-
     background-color: var(--left-side-scrollbar-track);
 }
+
+.ordersList::-webkit-scrollbar {
+  width: 10px;
+
+  background-color: var(--left-side-scrollbar-track);
+}
 .ordersList::-webkit-scrollbar-thumb {
-    background-color: var(--left-side-scrollbar-thumb);
+  background-color: var(--left-side-scrollbar-thumb);
 }
 
 .createOrder, .records, .deleteOrder {
@@ -1124,16 +1280,16 @@ body {
 }
 
 .controller-order {
-  display: flex; 
-  justify-content: space-between; 
-  bottom: 10px; 
-  left: 10px; 
+  display: flex;
+  justify-content: space-between;
+  bottom: 10px;
+  left: 10px;
   position: absolute;
   right: 10px;
 }
 
 .createOrder, .deleteOrder {
-  width: 45%;
+  width: 40%;
 }
 
 .deleteOrder {
@@ -1159,8 +1315,10 @@ body {
   transition: all .1s ease-in-out;
 }
 
-.author, .selectedCar, .dateRent, .dateSettings, .carNumber, .description {
-  font-size: 18px;
+.info-order-car {
+  display: flex;
+  position: relative;
+  margin-top: 12px;
 }
 
 .mainWindow .info .square {
@@ -1169,6 +1327,7 @@ body {
   flex-wrap: wrap;
   background: none;
   margin-left: -15px;
+  font-size: 18px;
   border: 1px solid var(--border-color);
 }
 
@@ -1183,7 +1342,7 @@ body {
   position: relative;
 }
 
-.mainWindow .info .rectangleGreen, .mainWindow .info .rectangleYellow {
+.mainWindow .info .rectangleGreen {
   flex-grow: 0px;
   position: absolute;
   display: inline-block;
@@ -1196,11 +1355,8 @@ body {
 
   display: flex;
   justify-content: flex-start;
-  align-items: center; 
-  font-family: sans-serif; 
-}
-
-.mainWindow .info .rectangleGreen {
+  align-items: center;
+  font-family: sans-serif;
   font-size: 18px;
   color: var(--div-color);
   background-color: var(--main-color);
@@ -1210,16 +1366,8 @@ body {
   padding-left: 30px;
 }
 
-.mainWindow .info .rectangleYellow p {
-  padding-left: 30px;
-}
-
-.mainWindow .info .rectangleYellow {
-  font-size: 19px;
-  color: var(--main-color);
-}
-
 .mainWindow .info .clearSelectedFull, .mainWindow .info .clearSelectedHalf {
+  position: absolute;
   background-color: var(--div-color);
   flex-grow: 0;
   display: inline-block;
@@ -1229,7 +1377,6 @@ body {
   color: var(--main-color);
 
   border: 1px solid var(--main-color);
-
   font-family: sans-serif;
 
   transition: all 0.3s ease-in-out 0.1s;
@@ -1239,7 +1386,9 @@ body {
   width: calc(100% - 20px);
   position: absolute;
   right: 10px;
-  font-size: 19px;
+  font-size: 17px;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .mainWindow .info .clearSelectedHalf {
@@ -1248,20 +1397,47 @@ body {
   width: 20%;
   font-size: 16px;
   cursor: pointer;
+  border-radius: 4px;
 }
 
-.mainWindow .info .dateSettings {
-  display: inline-grid;
+.info-order .dateSettings {
+  width: 100%;
+  justify-content: space-between;
+  table-layout: fixed;
+  display: flex;
 }
 
-.dateSettings input {
-  margin-bottom: 15px;
+.info-order .dateSettings .date-input {
+  place-content: start;
+  display: flex;
+}
+.info-order .dateSettings label {
+  padding-right: 5px;
+  font-size: 15px;
 }
 
-.info .description textarea {
-  width: 90%;
+.info-order .dateSettings input {
+  font-size: 15px;
+  margin-bottom: 10px;
+  display: inline-block;
+}
 
+.info-order .description {
+  width: 98%;
+  height: 355px;
   resize: none;
+  font-size: 18px;
+  outline: none;
+  line-height: 1.3;
+  background-color: transparent;
+  font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+  color: var(--main-color);
+  border: 1px solid var(--sub-color);
+}
+
+.info-order .author, .info-order .admin {
+  font-size: 14px;
+  color: var(--sub-color);
 }
 
 .order, .car {
@@ -1383,9 +1559,9 @@ body {
   transition: color 0.3s ease-in-out 0.3s, background-color 0s ease-in-out 0s, min-width 0.3s ease-in-out 0.1s;
   font-size: 15px;
   width: 125px;
-  border: none; 
-  border-radius: 4px; 
-  padding: 6px 4px; 
+  border: none;
+  border-radius: 4px;
+  padding: 6px 4px;
   color: var(--text-color);
   background-color: var(--sub-color);
   outline: none;
@@ -1427,14 +1603,34 @@ body {
   overflow: hidden;
 }
 
+.info-order-car .vs__selected-options {
+  max-height: 31px;
+  overflow: hidden;
+}
+
+.info-order-car .description {
+  font-size: 16px;
+  border: none;
+  padding: 4px 4px;
+  outline: none;
+  resize: none;
+  line-height: 1.3;
+  background-color: transparent;
+  font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+  color: var(--main-color);
+  height: 80px;
+  width: 100%;
+  overflow-y: hidden;
+  padding-left: 10px;
+}
+
 .car .description {
   transition: color 0.3s ease-in-out 0.4s, background-color 0.3s ease-in-out 0.4s, min-width 0.3s ease-in-out 0.1s;
   font-size: 15px;
-  border: none; 
-  padding: 4px 4px; 
+  border: none;
+  padding: 4px 4px;
   outline: none;
   resize: none;
-  overflow-y: auto; 
   line-height: 1.3;
   background-color: transparent;
   font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
@@ -1596,6 +1792,52 @@ body {
 
 .legenda .text-block .circle-with-text .outlined {
   border: 2px solid var(--main-color);
+}
+
+input[type="date"]{
+    color: var(--main-color);
+    outline: none;
+    border-radius: 5px;
+    border: 1px solid var(--main-color);
+}
+::-webkit-calendar-picker-indicator{
+    background-color: var(--border-color);
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+.theme-default .cv-item.selected {
+  --border-size: 3px;
+  --border-angle: 0turn;
+  background-image: conic-gradient(
+      from var(--border-angle),
+      #213,
+      #112 50%,
+      #213
+    ),
+    conic-gradient(from var(--border-angle), transparent 20%, #08f, #f03);
+  background-size: calc(100% - (var(--border-size) * 2))
+      calc(100% - (var(--border-size) * 2)),
+    cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+
+  animation: bg-spin 3s linear infinite;
+  @keyframes bg-spin {
+    to {
+      --border-angle: 1turn;
+    }
+  }
+
+  &:hover {
+    animation-play-state: paused;
+  }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0turn;
 }
 
 </style>
