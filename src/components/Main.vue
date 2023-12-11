@@ -800,6 +800,7 @@ export default {
           startDate: "",
           endDate: ""
         };
+      this.addAndEditOrderCalendar();
     },
 
     isBlockElementForEditingOrder() {
@@ -855,6 +856,8 @@ export default {
   --ready-background: #81faa075;
   --success-background: #429974;
   --error-background: #f44336;
+  --blue-gradient: #2767c980;
+  --white-gradient: #f1f8ff80;
 }
 
 body {
@@ -1806,38 +1809,27 @@ input[type="date"]{
     cursor: pointer;
     border-radius: 3px;
 }
-.theme-default .cv-item.selected {
-  --border-size: 3px;
-  --border-angle: 0turn;
-  background-image: conic-gradient(
-      from var(--border-angle),
-      #213,
-      #112 50%,
-      #213
-    ),
-    conic-gradient(from var(--border-angle), transparent 20%, #08f, #f03);
-  background-size: calc(100% - (var(--border-size) * 2))
-      calc(100% - (var(--border-size) * 2)),
-    cover;
-  background-position: center center;
-  background-repeat: no-repeat;
 
-  animation: bg-spin 3s linear infinite;
-  @keyframes bg-spin {
-    to {
-      --border-angle: 1turn;
-    }
-  }
-
-  &:hover {
-    animation-play-state: paused;
-  }
+.theme-default .cv-item.selected::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  background-image: linear-gradient(to right, var(--blue-gradient), var(--white-gradient), var(--blue-gradient), var(--white-gradient), var(--blue-gradient), var(--white-gradient), var(--blue-gradient), var(--white-gradient), var(--blue-gradient));
+  background-size: 200% auto;
+  opacity: 0.5;
+  animation: gradientBackground 4s linear infinite;
 }
 
-@property --border-angle {
-  syntax: "<angle>";
-  inherits: true;
-  initial-value: 0turn;
+@keyframes gradientBackground {
+  0% {
+    background-position: 0 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
 }
 
 </style>
