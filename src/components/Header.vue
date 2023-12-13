@@ -4,12 +4,12 @@
         <a href="https://portal.npf-isb.ru/"> Главная </a>
         <a href="https://portal.npf-isb.ru/employee-base"> Сотрудники </a>
         <a href="https://wiki.npf-isb.ru/doku.php/start"> База знаний </a>
-        <div style="display: block">
-            <a @mouseover="dropdown = true" @mouseleave="dropdown = false"> Заявки </a>
-            <div v-if="dropdown" class="dropdown">
-                <a href="https://helpdesk.npf-isb.ru/help/2611416429"> Техподдержка СИТ </a>
-                <a href="https://portal.npf-isb.ru/chancery"> Канцелярия </a>
-            </div>
+        <div id="dropdownContainer" class="dropdownContainer" @mouseover="dropdownOpen()" @mouseleave="dropdownClose()">
+          <a> Заявки </a>
+          <div v-if="dropdown" class="dropdown">
+            <a href="https://helpdesk.npf-isb.ru/help/2611416429"> Техподдержка СИТ </a>
+            <a href="https://portal.npf-isb.ru/chancery"> Канцелярия </a>
+          </div>
         </div>
       </div>
       <div class="banner">
@@ -26,10 +26,21 @@ export default {
 
   data() {
     return {
-        dropdown: false,
+      dropdown: false,
     }
-  }
+  },
 
+  methods: {
+    dropdownOpen() {
+      this.dropdown = true;
+      document.getElementById("dropdownContainer").style.height = "96px"
+    },
+
+    dropdownClose() {
+      this.dropdown = false;
+      document.getElementById("dropdownContainer").style.height = "32px"
+    }
+  },
 }
 
 </script>
@@ -55,6 +66,7 @@ export default {
   justify-content: center;
 
   color: var(--text-color);
+  background: var(--main-color);
 
   font-size: 17px;
   text-align: center;
@@ -68,13 +80,22 @@ export default {
   transition: all .1s ease-in-out;
 }
 
+.header .dropdownContainer {
+  z-index: 1;
+  display: block;
+}
+
 .header .dropdown {
   display: block;
   background: #2767c9;
 }
 
 .banner {
+  position: absolute;
+  top: 32px;
+
   height: 80px;
+  width: 100%;
 
   display: flex;
   align-items: center;
