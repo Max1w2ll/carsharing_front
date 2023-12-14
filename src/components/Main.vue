@@ -1,7 +1,7 @@
 <template>
   <div>
     <Header/>
-
+    <div>
     <div class="mainWindow">
       <div class="history">
         <div class="panel-header"> ИСТОРИЯ </div>
@@ -84,7 +84,8 @@
                     </div>
                     <div>
                       <div class="comment">Комментарий: </div>
-                      <textarea id="orderDesc" class="description" v-model="selectedOrder.desc" />
+                      <textarea v-if="!isBlockElementForEditingOrder()" id="orderDesc" class="description" v-model="selectedOrder.desc" />
+                      <div v-else class="description">{{ selectedOrder.desc }}</div>
                     </div>
                     <div>
                       <div class="author"> Автор заявки: {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </div>
@@ -92,7 +93,7 @@
                     </div>
                   </div>
                   <div class="controller-order">
-                    <button class="createOrder" @click.prevent="createOrder()"> {{ editingOrder ? "Сохранить" : "Создать"}} </button>
+                    <button class="createOrder" :class="{ 'width-100': !editingOrder}" @click.prevent="createOrder()"> {{ editingOrder ? "Сохранить" : "Создать"}} </button>
                     <button class="deleteOrder" v-if="editingOrder" @click.prevent="deleteOrder()" :class="{ 'ready-delete': readyForRemoveOrder}"> Удалить заказ </button>
                   </div>
                 </div>
@@ -155,8 +156,9 @@
       </div>
     </div>
   </div>
-  <div>
-    <CreateOrderDialog :data="orders" v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
+    <div>
+      <CreateOrderDialog :data="orders" v-if="showCreateOrderDialog" @close="closeCreateOrderDialog" />
+    </div>
   </div>
 </template>
 
@@ -433,7 +435,7 @@ export default {
 
     async setInCalendarPlanCar(carId, dateCalendar) {
       const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
-      axios.get(this.getFullUrl(API_LINKS.CAR_PLAN_GET) + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
+      await axios.get(this.getFullUrl(API_LINKS.CAR_PLAN_GET) + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
       .then((res) => {
           this.currentPlan = res.data.ordersPerMonth;
           this.addAndEditOrderCalendar();
@@ -588,26 +590,30 @@ export default {
       })
     },
 
-    getOrder(orderId) {
+    async getOrder(orderId) {
       const order = this.orders.find(obj => obj.id === orderId);
-      this.revertChangeInOrder(order)
-      this.editingOrder = true;
-      this.selectedOrder = order;
-      const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
-      if (selectedCarByOrder) {
-        this.selectCar(selectedCarByOrder);
-        this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+      if (order) {
+        this.revertChangeInOrder(order)
+        this.editingOrder = true;
+        this.selectedOrder = order;
+        this.showDate = order.beginDate;
+        const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
+        if (selectedCarByOrder) {
+          this.selectCar(selectedCarByOrder);
+          this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+        }
+        axios.get(this.getFullUrl(API_LINKS.ORDER_GET) + order.id, { withCredentials: true })
+        .then((res) => {
+          this.orderInfo = res.data;  
+          this.getCar(this.orderInfo.car);
+        });
+        this.addAndEditOrderCalendar();
+        this.readyForRemoveOrder = false;
       }
-      axios.get(this.getFullUrl(API_LINKS.ORDER_GET) + order.id, { withCredentials: true })
-      .then((res) => {
-        this.orderInfo = res.data;  
-        this.getCar(this.orderInfo.car);
-      });
-      this.addAndEditOrderCalendar();
     },
 
-    selectCarFromOrder() {
-      this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+    async selectCarFromOrder() {
+      await this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
       this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
     },
 
@@ -644,21 +650,23 @@ export default {
           this.currentPlan.splice(newOrderPlanForRemove, 1);
         }
       } else {
-        this.newOrderPlan.classes = this.selectedOrder.status == this.STATUS_ORDER.DONE ? ["ready", "selected"] : ["wait", "selected"];
-        this.newOrderPlan.title = this.editingOrder ? this.selectedOrder.username : this.userInfo.displayName;
-        this.newOrderPlan.startDate = this.selectedOrder.beginDate;
-        this.newOrderPlan.endDate = this.selectedOrder.endDate;
-        if (!this.currentPlan) {
-          this.currentPlan = [this.newOrderPlan]
-        } else {
-          this.currentPlan.push(this.newOrderPlan);
+        if (this.selectedOrder.status !== this.STATUS_ORDER.DENY && !this.isBlockElementForEditingOrder()) {
+          this.newOrderPlan.classes = this.selectedOrder.status == this.STATUS_ORDER.DONE ? ["ready", "selected"] : ["wait", "selected"];
+          this.newOrderPlan.title = this.editingOrder ? this.selectedOrder.username : this.userInfo.displayName;
+          this.newOrderPlan.startDate = this.selectedOrder.beginDate;
+          this.newOrderPlan.endDate = this.selectedOrder.endDate;
+          if (!this.currentPlan) {
+            this.currentPlan = [this.newOrderPlan];
+          } else {
+            this.currentPlan.push(this.newOrderPlan);
+          }
         }
       }
       this.currentPlan = this.currentPlan;
     },
     
 		onClickOrderOnCalendar(clickOrder) {
-      const findedOrder = this.orders.length > 0 ? this.orders.find(it => it.id.toString() === clickOrder.id) : false;
+      const findedOrder = this.orders.length > 0 ? this.orders.find(it => it.id.toString() === clickOrder.id.toString()) : false;
       const actualDate = new Date();
       if (findedOrder) {
         this.searchTextOrder = '';
@@ -702,8 +710,8 @@ export default {
       }
     },
 
-    getOrders() {
-      axios.get(this.getFullUrl(API_LINKS.ORDERS_GET), { withCredentials: true })
+    async getOrders() {
+      await axios.get(this.getFullUrl(API_LINKS.ORDERS_GET), { withCredentials: true })
       .then((res) => {
           this.orders = res.data
           const actualDate = new Date();
@@ -745,10 +753,10 @@ export default {
         try {
           const res = await axios.post(this.getFullUrl(API_LINKS.ORDERS_POST), this.orderInfo, { withCredentials: true });
           ModalWindows.showModal("Заказ создан!", true);
-          this.getOrders();
+          await this.getOrders();
           await this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+          this.editingOrderHolder = {};
           this.onClickOrderOnCalendar(res.data);
-          this.editingOrderHolder = { ...res};
         } catch (e) {
           this.readyForRemoveOrder = false;
           ModalWindows.showModal(e.response.data.message, false);
@@ -760,15 +768,16 @@ export default {
         this.orderInfo.beginDate = this.selectedOrder.beginDate;
         this.orderInfo.endDate = this.selectedOrder.endDate;
         axios.patch(this.getFullUrl(API_LINKS.ORDER_PATCH), this.orderInfo, { withCredentials: true })
-          .then(() => {
+          .then(async () => {
             ModalWindows.showModal("Заказ сохранен!", true);
-            this.getOrders();
-            this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
+            await this.getOrders();
+            await this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
             this.editingOrderHolder = this.selectedOrder;
           }).catch((e) => {
             ModalWindows.showModal(e.response.data.message, false);
           })
       }
+      this.readyForRemoveOrder = false;
     },
 
     deleteOrder() {
@@ -792,6 +801,7 @@ export default {
       this.revertChangeInOrder({});
       this.selectedOrder = {};
       this.editingOrder = false;
+      this.readyForRemoveOrder = false;
       this.newOrderPlan = {
           id: "-1",
           title: "",
@@ -809,6 +819,13 @@ export default {
 
     carIsNotFindInList() {
       return this.editingOrder && this.cars.length > 0 && !this.cars.find(car => car.id === this.selectedOrder.car);
+    },
+
+    async loadData() {
+      await this.getUserJWT();
+      await this.getUserInfo();
+      this.getCars();
+      this.getOrders();
     }
 
   },
@@ -816,10 +833,10 @@ export default {
   mounted() {
     this.statusesList = [this.STATUS_ORDER.DONE, this.STATUS_ORDER.PROCESS, this.STATUS_ORDER.DENY]
     setTimeout(async () => {
-      await this.getUserJWT();
-      await this.getUserInfo();
-      this.getCars();
-      this.getOrders();
+      this.loadData();
+      setInterval(async () => {
+        this.loadData();
+      }, 1000 * 60 * 3)
     }, 100);
   }
 }
@@ -863,7 +880,7 @@ export default {
 body {
   margin: 0;
 
-  overflow-y: hidden;
+  overflow-y: auto;
   overflow-x: hidden;
 
   background: var(--main-background);
@@ -1095,7 +1112,7 @@ body {
 
 .mainWindow {
   margin-top: 80px;
-
+  overflow-x: auto;
   width: 100%;
 
   display: flex;
@@ -1134,9 +1151,15 @@ body {
 .block-order .info-order .description, .block-order .dateSettings input, .block-order .deleteOrder, .block-order .createOrder{
   background-color: #fafafa !important;
 }
-.block-order .comment, .block-order .description{
-  height: auto !important;
+.block-order .info-order .description {
+  height: auto!important;
+  max-height: 355px;
+  overflow: auto;
+  pointer-events: auto;
+  padding-bottom: 5px;
+  padding-top: 5px;
 }
+
 .block-order .createOrder, .block-order .deleteOrder{
   border: 1px solid #9e9e9e !important;
   color: #9e9e9e !important;
@@ -1336,6 +1359,11 @@ body {
 
 .mainWindow .info .block-order {
   pointer-events: none;
+  user-select: text;
+}
+
+.mainWindow .info .block-order .clearSelectedHalf {
+  pointer-events: all;
 }
 
 .mainWindow .info .inter-square {
@@ -1621,7 +1649,7 @@ body {
   background-color: transparent;
   font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
   color: var(--main-color);
-  height: 80px;
+  height: 85px;
   width: 100%;
   overflow-y: hidden;
   padding-left: 10px;
@@ -1755,8 +1783,8 @@ body {
 }
 
 .ready-delete {
-  color: var(--text-color);
-  background-color: var(--deleteButton-background);
+  color: var(--text-color) !important;
+  background-color: var(--deleteButton-background) !important;
   transition: all .1s ease-in-out;
 }
 
@@ -1830,6 +1858,10 @@ input[type="date"]{
   100% {
     background-position: 100% 50%;
   }
+}
+
+.width-100 {
+  width: 100%;
 }
 
 </style>
