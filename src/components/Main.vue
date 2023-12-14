@@ -40,7 +40,7 @@
 
       <div class="info">
         <div class="panel-header"> ИНФОРМАЦИЯ </div>
-          <div :class = "{'block-order': isBlockElementForEditingOrder()}">
+          <div :class="{'block-order': isBlockElementForEditingOrder()}" style="position: relative">
             <div class="square">
               <div class="inter-square">
                 <div style="display: flex; justify-content: space-between;">
@@ -48,14 +48,15 @@
                     <div v-if="!userIsAdmin()" style="padding-left: 10px;">{{ selectedOrder.status }}</div>
                     <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin()" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
                   </div>
-                  <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(editingOrder ? 'Новая заявка' : 'Создание заявки')}}</button>
+                  <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(selectedOrderForShow ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
                   <div class = "info-order-car">
                     <div class="auto">Автомобиль: </div>
                     <div style="width: 100%; padding-left: 5px; margin-top: -3px; font-size: 16px;">
                       <div v-if="carIsNotFindInList()" style="padding-left: 10px; margin-top: 3px;">Скрыт</div>
-                      <vue-select style="max-height: 34px;" :clearable="false" label="label" v-if="!carIsNotFindInList()" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
-                      <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : selectedCar.desc" />
+                      <vue-select style="max-height: 34px;" :clearable="false" label="label" v-else-if="!carIsNotFindInList() && (editingOrder || !selectedOrderForShow)" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
+                      <div style="max-height: 34px; padding-top: 5px; padding-bottom: 8px; padding-left: 9px;" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
+                      <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : (editingOrder || !selectedOrderForShow ? selectedCar.desc : getCarDescById(selectedOrder.car))" />
                     </div>
                   </div>
                   <div class="info-order">
@@ -93,8 +94,20 @@
                     </div>
                   </div>
                   <div class="controller-order">
-                    <button class="createOrder" :class="{ 'width-100': !editingOrder}" @click.prevent="createOrder()"> {{ editingOrder ? "Сохранить" : "Создать"}} </button>
-                    <button class="deleteOrder" v-if="editingOrder" @click.prevent="deleteOrder()" :class="{ 'ready-delete': readyForRemoveOrder}"> Удалить заказ </button>
+                    <button class="createOrder" v-if="editingOrder || !selectedOrderForShow || isBlockActivateEditingOrder()" :class="{ 'width-100': !selectedOrderForShow}" @click.prevent="createOrder()"> {{ selectedOrderForShow ? "Сохранить" : "Создать"}} </button>
+                    <button class="activate-editing-order" v-else @click.prevent="activateEditingOrder()"> Изменить </button>
+                    <button class="deleteOrder" v-if="selectedOrderForShow" @click.prevent="openModalDeleteOrder()"> Удалить заказ </button>
+                  </div>
+                </div>
+                <div v-if="readyForRemoveOrder" class="modal-accept-delete">
+                  <div class="modal-content">
+                    <div style="display: flex; justify-content: center;">
+                      Вы уверены, что хотите удалить?
+                    </div>
+                    <div class="buttons">
+                      <button @click="cancelDeleteOrder()" class="createOrder">Отмена</button>
+                      <button @click="deleteOrder()" class="deleteOrder">Удалить</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -235,6 +248,7 @@ export default {
         editingCar: {},
         editingOrderHolder: {},
 
+        selectedOrderForShow: false,
         editingOrder: false,
         readyForRemoveCar: false,
         readyForRemoveOrder: false,
@@ -594,7 +608,8 @@ export default {
       const order = this.orders.find(obj => obj.id === orderId);
       if (order) {
         this.revertChangeInOrder(order)
-        this.editingOrder = true;
+        this.selectedOrderForShow = true;
+        this.editingOrder = false;
         this.selectedOrder = order;
         this.showDate = order.beginDate;
         const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
@@ -652,7 +667,7 @@ export default {
       } else {
         if (this.selectedOrder.status !== this.STATUS_ORDER.DENY && !this.isBlockElementForEditingOrder()) {
           this.newOrderPlan.classes = this.selectedOrder.status == this.STATUS_ORDER.DONE ? ["ready", "selected"] : ["wait", "selected"];
-          this.newOrderPlan.title = this.editingOrder ? this.selectedOrder.username : this.userInfo.displayName;
+          this.newOrderPlan.title = this.selectedOrderForShow ? this.selectedOrder.username : this.userInfo.displayName;
           this.newOrderPlan.startDate = this.selectedOrder.beginDate;
           this.newOrderPlan.endDate = this.selectedOrder.endDate;
           if (!this.currentPlan) {
@@ -745,7 +760,7 @@ export default {
     },
 
     async createOrder() {
-      if (!this.selectedOrder.id && this.editingOrder == false) {
+      if (!this.selectedOrder.id && this.selectedOrderForShow == false) {
         this.orderInfo.car = this.selectedCar.id;
         this.orderInfo.desc = document.getElementById('orderDesc').value;
         this.orderInfo.beginDate = this.selectedOrder.beginDate;
@@ -761,7 +776,7 @@ export default {
           this.readyForRemoveOrder = false;
           ModalWindows.showModal(e.response.data.message, false);
         }
-        this.editingOrder = true;
+        this.selectedOrderForShow = true;
       } else {
         this.orderInfo.car = this.selectedCar.id;
         this.orderInfo.desc = document.getElementById('orderDesc').value;
@@ -794,12 +809,20 @@ export default {
           ModalWindows.showModal(e.response.data.message, false);
         })
       }
+    },
+
+    openModalDeleteOrder() {
       this.readyForRemoveOrder = true;
+    },
+
+    cancelDeleteOrder() {
+      this.readyForRemoveOrder = false;
     },
 
     clearSelected() {
       this.revertChangeInOrder({});
       this.selectedOrder = {};
+      this.selectedOrderForShow = false;
       this.editingOrder = false;
       this.readyForRemoveOrder = false;
       this.newOrderPlan = {
@@ -813,12 +836,33 @@ export default {
       this.addAndEditOrderCalendar();
     },
 
+    activateEditingOrder() {
+      const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
+      if (selectedCarByOrder) {
+        this.selectCar(selectedCarByOrder);
+        this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+      }
+      this.editingOrder = true;
+    },
+
     isBlockElementForEditingOrder() {
-      return !this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status !== this.STATUS_ORDER.PROCESS || this.carIsNotFindInList()
+      return this.isBlockActivateEditingOrder() || !this.editingOrder && this.selectedOrderForShow;
+    },
+
+    isBlockActivateEditingOrder() {
+      return !this.userIsAdmin() && this.selectedOrder.status && this.selectedOrder.status !== this.STATUS_ORDER.PROCESS || this.carIsNotFindInList();
     },
 
     carIsNotFindInList() {
-      return this.editingOrder && this.cars.length > 0 && !this.cars.find(car => car.id === this.selectedOrder.car);
+      return this.selectedOrderForShow && this.cars.length > 0 && !this.cars.find(car => car.id === this.selectedOrder.car);
+    },
+
+    getCarLabelById(carId) {
+      return this.cars.length > 0 && carId ? this.cars.find(car => car.id === carId)?.label : null;
+    },
+
+    getCarDescById(carId) {
+      return this.cars.length > 0 && carId ? this.cars.find(car => car.id === carId)?.desc : null;
     },
 
     async loadData() {
@@ -1103,6 +1147,29 @@ body {
     background: var(--success-background);
 }
 
+.modal-accept-delete {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.modal-accept-delete .modal-content .buttons {
+  display: flex;
+  justify-content: space-around; 
+}
+
+.modal-accept-delete .modal-content {
+  width: 80%;
+  background: var(--div-color);
+  border-radius: 5px;
+  padding: 14px;
+}
+
 :root {
   --main-color: #2767c9;
   --text-color: #ffffff;
@@ -1152,24 +1219,25 @@ body {
   background-color: #fafafa !important;
 }
 .block-order .info-order .description {
-  height: auto!important;
-  max-height: 355px;
+  height: 355px;
   overflow: auto;
   pointer-events: auto;
-  padding-bottom: 5px;
-  padding-top: 5px;
 }
 
-.block-order .createOrder, .block-order .deleteOrder{
+.block-order .createOrder, .block-order .deleteOrder {
   border: 1px solid #9e9e9e !important;
   color: #9e9e9e !important;
 }
-.block-order .dateSettings input, .block-order .info-order .description{
-  border: none !important;
+
+.block-order .dateSettings input, .block-order .info-order .description {
+  border-color: var(--div-color) !important;
 }
-.blocked-order .square{
-  background-color: #fafafa !important;
+
+.block-order .info-order .description {
+  padding-left: 2px;
+  padding-top: 2px;
 }
+
 
 .mainWindow .lastPanel {
   width: 51%;
@@ -1290,7 +1358,7 @@ body {
   background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder, .records, .deleteOrder {
+.createOrder, .records, .deleteOrder, .activate-editing-order {
   margin-top: 20px;
 
   height: 40px;
@@ -1314,7 +1382,7 @@ body {
   right: 10px;
 }
 
-.createOrder, .deleteOrder {
+.createOrder, .deleteOrder, .activate-editing-order {
   width: 40%;
 }
 
@@ -1334,7 +1402,7 @@ body {
   width: 100%;
 }
 
-.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover {
+.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order {
   color: var(--text-color);
   background: var(--main-color);
 
@@ -1362,7 +1430,7 @@ body {
   user-select: text;
 }
 
-.mainWindow .info .block-order .clearSelectedHalf {
+.mainWindow .info .block-order .clearSelectedHalf, .mainWindow .info .block-order .activate-editing-order {
   pointer-events: all;
 }
 
