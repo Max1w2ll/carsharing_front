@@ -50,12 +50,12 @@
                   </div>
                   <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(selectedOrderForShow ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
-                  <div class = "info-order-car">
+                  <div class="info-order-car">
                     <div class="auto">Автомобиль: </div>
                     <div style="width: 100%; padding-left: 5px; margin-top: -3px; font-size: 16px;">
                       <div v-if="carIsNotFindInList()" style="padding-left: 10px; margin-top: 3px;">Скрыт</div>
-                      <vue-select style="max-height: 34px;" :clearable="false" label="label" v-else-if="!carIsNotFindInList() && (editingOrder || !selectedOrderForShow)" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
-                      <div style="max-height: 34px; padding-top: 5px; padding-bottom: 8px; padding-left: 9px;" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
+                      <vue-select style="height: 34px;" :clearable="false" label="label" v-else-if="!carIsNotFindInList() && (editingOrder || !selectedOrderForShow)" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
+                      <div class="label-car" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
                       <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : (editingOrder || !selectedOrderForShow ? selectedCar.desc : getCarDescById(selectedOrder.car))" />
                     </div>
                   </div>
@@ -70,7 +70,7 @@
                             <label for="settingDateFrom">С</label>
                           </div>
                           <div>
-                            <input id="settingDateFrom" type="date" v-model="selectedOrder.beginDate" @change="addAndEditOrderCalendar()"> 
+                            <input id="settingDateFrom" type="date" v-model="selectedOrder.beginDate" @change="changeDateInOrder()" min="2023-01-01" max="2030-12-31"> 
                           </div>
                         </div> 
                         <div class="date-input">
@@ -78,11 +78,17 @@
                             <label for="settingDateTo">По</label>
                           </div>
                           <div>
-                            <input id="settingDateTo" type="date" v-model="selectedOrder.endDate" @change="addAndEditOrderCalendar()">
+                            <input id="settingDateTo" type="date" v-model="selectedOrder.endDate" @change="changeDateInOrder()" min="2023-01-01" max="2030-12-31">
                           </div>
                         </div>
                       </div> 
                     </div>
+                    <div class="href-recomended-car">
+                      <div class="d-flex" v-if="!isBlockElementForEditingOrder()">
+                        <a v-if="avalibleCars.length > 0" href="#" @click="openModalRecomendedCar()" class="href-open-modal">Найдены подходящие машины</a>
+                        <div v-else>Не найдено подходящих машин</div>
+                      </div>
+                    </div> 
                     <div>
                       <div class="comment">Комментарий: </div>
                       <textarea v-if="!isBlockElementForEditingOrder()" id="orderDesc" class="description" v-model="selectedOrder.desc" />
@@ -108,6 +114,17 @@
                       <button @click="cancelDeleteOrder()" class="createOrder">Отмена</button>
                       <button @click="deleteOrder()" class="deleteOrder">Удалить</button>
                     </div>
+                  </div>
+                </div>
+                <div v-if="openRecomendedCar" class="modal-accept-delete">
+                  <div class="modal-content">
+                    <span class="close" @click="openRecomendedCar = false">&times;</span>
+                    Список рекомендованных машин
+                    <table>
+                        <tr v-for="car in avalibleCars" @click="selectCar(car)">
+                          <td>{{ car.label }}</td>
+                        </tr>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -194,6 +211,7 @@ const API_LINKS = {
   CARS_GET: `cars/all`,
   CAR_GET: `cars/`,
   CAR_DELETE: `cars/`,
+  CAR_GET_AVALIBLE: `cars/avalible-car/`,
   CAR_POST: `cars/create`,
   CAR_PATCH: `cars/edit`,
   CAR_PLAN_GET: `orders/in-month`,
@@ -235,6 +253,7 @@ export default {
         userJWT: () => [], 
         userInfo: () => [], 
         cars: () => [], 
+        avalibleCars: () => [], 
         orders: () => [],
         filteredOrders: () => [],
 
@@ -252,6 +271,7 @@ export default {
         editingOrder: false,
         readyForRemoveCar: false,
         readyForRemoveOrder: false,
+        openRecomendedCar: false,
 
         emptyCar: {
           desc: "",
@@ -452,7 +472,7 @@ export default {
       await axios.get(this.getFullUrl(API_LINKS.CAR_PLAN_GET) + `/${carId}` + `/${new Date(dateCalendar).toLocaleDateString('fr-CA', options)}`, { withCredentials: true })
       .then((res) => {
           this.currentPlan = res.data.ordersPerMonth;
-          this.addAndEditOrderCalendar();
+          this.changeDateInOrder();
       })
     },
 
@@ -622,7 +642,7 @@ export default {
           this.orderInfo = res.data;  
           this.getCar(this.orderInfo.car);
         });
-        this.addAndEditOrderCalendar();
+        this.changeDateInOrder();
         this.readyForRemoveOrder = false;
       }
     },
@@ -653,9 +673,31 @@ export default {
       }
     },
 
+    changeDateInOrder() {
+      this.addAndEditOrderCalendar();
+      this.remathAvalibleCar();
+    },
+
+    async remathAvalibleCar() {
+      if (this.selectedOrder.beginDate && this.selectedOrder.endDate) {
+        await axios.get(this.getFullUrl(API_LINKS.CAR_GET_AVALIBLE) + `/${this.selectedOrder.beginDate}` + `/${this.selectedOrder.endDate}` + `/${this.selectedOrder.id ? this.selectedOrder.id : 0}`, { withCredentials: true })
+          .then((res) => {
+            this.avalibleCars = [];
+            res.data.forEach(it => {
+              const findElement = this.cars.find(car => car.id === it.id);
+              if (findElement) {
+                this.avalibleCars.push(findElement);
+              }
+            })
+          })
+      } else {
+        this.avalibleCars = [];
+      }
+    },
+
     addAndEditOrderCalendar() {
       const findPlan = this.currentPlan ? (this.selectedOrder.id ? 
-        this.currentPlan.find(it => it.id === this.selectedOrder.id.toString()) : 
+        this.currentPlan.find(it => it.id.toString() === this.selectedOrder.id.toString()) : 
         this.currentPlan.find(it => it.id === "-1")) : false;
       if (findPlan) {
         findPlan.startDate = this.selectedOrder.beginDate;
@@ -760,11 +802,14 @@ export default {
     },
 
     async createOrder() {
+      if (!this.validateForm()) {
+        return;
+      }
       if (!this.selectedOrder.id && this.selectedOrderForShow == false) {
         this.orderInfo.car = this.selectedCar.id;
         this.orderInfo.desc = document.getElementById('orderDesc').value;
-        this.orderInfo.beginDate = this.selectedOrder.beginDate;
-        this.orderInfo.endDate = this.selectedOrder.endDate;
+        this.orderInfo.beginDate = this.selectedOrder.beginDate ? this.selectedOrder.beginDate : "";
+        this.orderInfo.endDate = this.selectedOrder.endDate ? this.selectedOrder.endDate : "";
         try {
           const res = await axios.post(this.getFullUrl(API_LINKS.ORDERS_POST), this.orderInfo, { withCredentials: true });
           ModalWindows.showModal("Заказ создан!", true);
@@ -772,27 +817,51 @@ export default {
           await this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
           this.editingOrderHolder = {};
           this.onClickOrderOnCalendar(res.data);
+          this.selectedOrderForShow = true;
         } catch (e) {
           this.readyForRemoveOrder = false;
+          this.selectedOrderForShow = false;
           ModalWindows.showModal(e.response.data.message, false);
         }
-        this.selectedOrderForShow = true;
       } else {
         this.orderInfo.car = this.selectedCar.id;
         this.orderInfo.desc = document.getElementById('orderDesc').value;
-        this.orderInfo.beginDate = this.selectedOrder.beginDate;
-        this.orderInfo.endDate = this.selectedOrder.endDate;
+        this.orderInfo.beginDate = this.selectedOrder.beginDate ? this.selectedOrder.beginDate : "";
+        this.orderInfo.endDate = this.selectedOrder.endDate ? this.selectedOrder.endDate : "";
         axios.patch(this.getFullUrl(API_LINKS.ORDER_PATCH), this.orderInfo, { withCredentials: true })
           .then(async () => {
             ModalWindows.showModal("Заказ сохранен!", true);
             await this.getOrders();
             await this.setInCalendarPlanCar(this.selectedCar.id, this.showDate);
             this.editingOrderHolder = this.selectedOrder;
+            this.editingOrder = false;
           }).catch((e) => {
             ModalWindows.showModal(e.response.data.message, false);
           })
       }
       this.readyForRemoveOrder = false;
+    },
+
+    validateForm() {
+      try {
+        this.validateDate(this.selectedOrder.beginDate);
+        this.validateDate(this.selectedOrder.endDate);
+      } catch (e) {
+        console.log(e);
+        ModalWindows.showModal(e.error, false);
+        return false;
+      }
+      return true;
+    },
+
+    validateDate(inputDate) {
+      const userDate = new Date(inputDate);
+      if (userDate.getFullYear() < 2022) {
+        throw new Error('Введенная дата имеет год меньше допустимого 2022');
+      }
+      if (userDate.getFullYear() > 2025) {
+        throw new Error('Введенная дата имеет год больше допустимого 2025');
+      }
     },
 
     deleteOrder() {
@@ -814,9 +883,15 @@ export default {
     openModalDeleteOrder() {
       this.readyForRemoveOrder = true;
     },
+    openModalRecomendedCar() {
+      this.openRecomendedCar = true;
+    },
 
     cancelDeleteOrder() {
       this.readyForRemoveOrder = false;
+    },
+    cancelModalRecomendedCar() {
+      this.openRecomendedCar = false;
     },
 
     clearSelected() {
@@ -833,7 +908,7 @@ export default {
           startDate: "",
           endDate: ""
         };
-      this.addAndEditOrderCalendar();
+      this.changeDateInOrder();
     },
 
     activateEditingOrder() {
@@ -1219,7 +1294,7 @@ body {
   background-color: #fafafa !important;
 }
 .block-order .info-order .description {
-  height: 355px;
+  height: 340px;
   overflow: auto;
   pointer-events: auto;
 }
@@ -1523,7 +1598,7 @@ body {
 
 .info-order .description {
   width: 98%;
-  height: 355px;
+  height: 340px;
   resize: none;
   font-size: 18px;
   outline: none;
@@ -1704,6 +1779,14 @@ body {
 
 .info-order-car .vs__selected-options {
   max-height: 31px;
+  overflow: hidden;
+}
+
+.info-order-car .label-car {
+  max-height: 24px;
+  padding-left: 9px;
+  margin-bottom: 4px;
+  margin-top: 6px;
   overflow: hidden;
 }
 
@@ -1930,6 +2013,21 @@ input[type="date"]{
 
 .width-100 {
   width: 100%;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.href-open-modal:visited {
+  color: var(--button-active) !important;
+}
+
+.href-recomended-car {
+  display: flex;
+  color: var(--button-active) !important; 
+  margin-top: -10px; 
+  min-height: 24px;
 }
 
 </style>
