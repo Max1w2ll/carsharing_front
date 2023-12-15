@@ -116,11 +116,11 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="openRecomendedCar" class="modal-accept-delete">
+                <div v-if="openRecomendedCar" class="modal-recomended-car">
                   <div class="modal-content">
                     <span class="close" @click="openRecomendedCar = false">&times;</span>
                     Список рекомендованных машин
-                    <table>
+                    <table class="recomended-table">
                         <tr v-for="car in avalibleCars" @click="selectCar(car)">
                           <td>{{ car.label }}</td>
                         </tr>
@@ -955,7 +955,7 @@ export default {
       this.loadData();
       setInterval(async () => {
         this.loadData();
-      }, 1000 * 60 * 3)
+      }, 1000 * 60 * 20)
     }, 100);
   }
 }
@@ -1222,7 +1222,7 @@ body {
     background: var(--success-background);
 }
 
-.modal-accept-delete {
+.modal-accept-delete, .modal-recomended-car {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -1238,11 +1238,27 @@ body {
   justify-content: space-around; 
 }
 
-.modal-accept-delete .modal-content {
+.modal-accept-delete .modal-content, .modal-recomended-car .modal-content {
   width: 80%;
   background: var(--div-color);
   border-radius: 5px;
   padding: 14px;
+}
+
+.modal-accept-delete .recomended-table {
+  border-collapse: collapse;
+}
+
+.modal-accept-delete .recomended-table {
+  border-collapse: collapse;
+}
+
+.modal-accept-delete .recomended-table tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-accept-delete .recomended-table tr:hover {
+  background-color: var(--border-color);
 }
 
 :root {
