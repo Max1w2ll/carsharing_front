@@ -134,6 +134,11 @@
       <div class="lastPanel">
         <div class="availableCars">
         <div class="panel-header"> ДОСТУПНЫЕ МАШИНЫ </div>
+          <div>
+            <button class="avaibleCarsButton"> Доступные машины </button>
+            <button class="avaibleCarsButton"> Весь автопарк </button>
+            <button class="avaibleCarsButton"> Доступные сегодня </button>
+          </div>
           <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
             <div class="car" :data-key="car.id" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
               <div class="header">
@@ -144,7 +149,7 @@
               </div>
               <div class="body">
                 <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" v-model="car.desc" />
-                <div v-if="car.id !== -1">
+                <div style="height: 30px; display: none;" v-if="car.id !== -1">
                   <input type="checkbox" :id="'scales_' + car.id" class="custom-checkbox" :checked="intToBool(car.isShowInList)" @change="updateShowInList(car, $event.target.checked)">
                   <label :for="'scales_' + car.id" class="checkbox-label">Показать в выдаче</label>
                   <div style="display: flex; transform: translateY(-34px);">
@@ -1378,7 +1383,6 @@ body {
   margin: 10px;
   margin-right: 0;
   display: -webkit-box;
-  height: 30px;
   max-width: 95%;
   transition: min-width 0.3s ease-in-out 0.1s;
 }
@@ -1388,11 +1392,9 @@ body {
 }
 
 .mainWindow .availableCars .car.new-car-panel {
-  margin-right: 10px;
-  margin-top: 54px;
+  margin: 10px;
   min-width: 112px;
   max-height: 36px;
-  border: none;
 }
 
 .mainWindow .availableCars .car.new-car-panel .carNumber {
@@ -1451,7 +1453,7 @@ body {
   background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder, .records, .deleteOrder, .activate-editing-order {
+.createOrder, .records, .deleteOrder, .activate-editing-order, .avaibleCarsButton {
   margin-top: 20px;
 
   height: 40px;
@@ -1464,6 +1466,13 @@ body {
   font-family: sans-serif;
 
   cursor: pointer;
+}
+
+.avaibleCarsButton {
+  margin-top: 0;
+  margin-right: 20px;
+
+  height: 30px;
 }
 
 .controller-order {
@@ -1495,7 +1504,7 @@ body {
   width: 100%;
 }
 
-.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order:hover {
+.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order:hover, .avaibleCarsButton:hover {
   color: var(--text-color);
   background: var(--main-color);
 
@@ -1727,7 +1736,7 @@ body {
   margin-bottom: 8px;
   margin-right: 32px;
 
-  max-height: 180px; 
+  max-height: 134px;
 
   overflow-x: hidden;
 
@@ -1744,12 +1753,12 @@ body {
 }
 
 .car .header {
+  margin: auto 30px auto 0;
   margin-right: 30px;
   position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 34px;
   color: var(--text-color);
   background: var(--sub-color);
 }
@@ -1798,7 +1807,6 @@ body {
 .car .body {
   margin-top: 4px;
   display: flex;
-  min-height: 65%;
 }
 
 .info-order-car .vs__selected-options {
@@ -1833,8 +1841,12 @@ body {
 .car .description {
   transition: color 0.3s ease-in-out 0.4s, background-color 0.3s ease-in-out 0.4s, min-width 0.3s ease-in-out 0.1s;
   font-size: 15px;
+  /* -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden; */
+  display: table;
   border: none;
-  padding: 4px 4px;
   outline: none;
   resize: none;
   line-height: 1.3;
@@ -1843,7 +1855,6 @@ body {
   color: var(--main-color);
   max-width: 262px;
   min-width: 262px;
-  overflow-y: hidden;
 }
 
 .car.editingCar .description {
