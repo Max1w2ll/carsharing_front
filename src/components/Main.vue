@@ -133,7 +133,11 @@
 
       <div class="lastPanel">
         <div class="availableCars">
-        <div class="panel-header"> ДОСТУПНЫЕ МАШИНЫ </div>
+        <div>
+          <button class="selectCarList"> Доступные машины </button>
+          <button class="selectCarList"> Доступные сегодня </button>
+          <button class="selectCarList"> Весь автопарк </button>
+        </div>
           <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
             <div class="car" :data-key="car.id" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
               <div class="header">
@@ -1449,7 +1453,7 @@ body {
   background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder, .records, .deleteOrder, .activate-editing-order {
+.createOrder, .records, .deleteOrder, .activate-editing-order, .selectCarList {
   margin-top: 20px;
 
   height: 40px;
@@ -1462,6 +1466,11 @@ body {
   font-family: sans-serif;
 
   cursor: pointer;
+}
+
+.selectCarList {
+  margin-top: 10px;
+  margin-right: 10px;
 }
 
 .controller-order {
@@ -1493,7 +1502,7 @@ body {
   width: 100%;
 }
 
-.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order {
+.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order:hover, .selectCarList:hover {
   color: var(--text-color);
   background: var(--main-color);
 
