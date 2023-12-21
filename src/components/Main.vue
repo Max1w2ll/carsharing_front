@@ -118,8 +118,8 @@
                 </div>
                 <div v-if="openRecomendedCar" class="modal-recomended-car">
                   <div class="modal-content">
-                    Список рекомендованных машин
                     <span class="close" @click="openRecomendedCar = false">&times;</span>
+                    Список рекомендованных машин
                     <table class="recomended-table">
                         <tr v-for="car in avalibleCars" @click="selectCar(car)">
                           <td>{{ car.label }}</td>
@@ -133,12 +133,11 @@
 
       <div class="lastPanel">
         <div class="availableCars">
-        <div class="panel-header"> ДОСТУПНЫЕ МАШИНЫ </div>
-          <div>
-            <button class="avaibleCarsButton"> Доступные машины </button>
-            <button class="avaibleCarsButton"> Весь автопарк </button>
-            <button class="avaibleCarsButton"> Доступные сегодня </button>
-          </div>
+        <div>
+          <button class="selectCarList"> Доступные машины </button>
+          <button class="selectCarList"> Доступные сегодня </button>
+          <button class="selectCarList"> Весь автопарк </button>
+        </div>
           <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
             <div class="car" :data-key="car.id" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
               <div class="header">
@@ -149,10 +148,10 @@
               </div>
               <div class="body">
                 <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" v-model="car.desc" />
-                <div style="height: 30px; display: none;" v-if="car.id !== -1">
+                <div v-if="car.id !== -1">
                   <input type="checkbox" :id="'scales_' + car.id" class="custom-checkbox" :checked="intToBool(car.isShowInList)" @change="updateShowInList(car, $event.target.checked)">
                   <label :for="'scales_' + car.id" class="checkbox-label">Показать в выдаче</label>
-                  <div style="display: flex; transform: translateY(-34px);">
+                  <div style="display: flex">
                     <button @click.prevent="saveCar(car)" class="save-car" :class="{ 'full-save-car': car.id === -2 }"> Сохранить </button> 
                     <button v-if="car.id !== -2" @click.prevent="deleteCar(car)" class="delete-car" :class="{ 'ready-delete': readyForRemoveCar }"> 🗑️ </button> 
                   </div>
@@ -1380,11 +1379,11 @@ body {
 }
 
 .mainWindow .availableCars .car {
+  transition: min-width 0.3s ease-in-out 0.1s;
   margin: 10px;
   margin-right: 0;
-  display: -webkit-box;
-  max-width: 95%;
-  transition: min-width 0.3s ease-in-out 0.1s;
+  min-width: 270px;
+  max-width: 270px;
 }
 
 .mainWindow .availableCars .car.editingCar {
@@ -1392,9 +1391,10 @@ body {
 }
 
 .mainWindow .availableCars .car.new-car-panel {
-  margin: 10px;
   min-width: 112px;
   max-height: 36px;
+  margin-right: 10px;
+  margin-top: 54px;
 }
 
 .mainWindow .availableCars .car.new-car-panel .carNumber {
@@ -1453,7 +1453,7 @@ body {
   background-color: var(--left-side-scrollbar-thumb);
 }
 
-.createOrder, .records, .deleteOrder, .activate-editing-order, .avaibleCarsButton {
+.createOrder, .records, .deleteOrder, .activate-editing-order, .selectCarList {
   margin-top: 20px;
 
   height: 40px;
@@ -1468,11 +1468,9 @@ body {
   cursor: pointer;
 }
 
-.avaibleCarsButton {
-  margin-top: 0;
-  margin-right: 20px;
-
-  height: 30px;
+.selectCarList {
+  margin-top: 10px;
+  margin-right: 10px;
 }
 
 .controller-order {
@@ -1504,7 +1502,7 @@ body {
   width: 100%;
 }
 
-.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order:hover, .avaibleCarsButton:hover {
+.createOrder:hover, .records:hover, .mainWindow .info .clearSelectedHalf:hover, .activate-editing-order:hover, .selectCarList:hover {
   color: var(--text-color);
   background: var(--main-color);
 
@@ -1548,7 +1546,7 @@ body {
   position: absolute;
   display: inline-block;
 
-  height: 40px;
+  height: 38px;
   width: 100%;
 
   position: relative;
@@ -1561,10 +1559,6 @@ body {
   font-size: 18px;
   color: var(--div-color);
   background-color: var(--main-color);
-}
-
-.v-select {
-  margin-left: 2px;
 }
 
 .mainWindow .info .rectangleGreen p {
@@ -1597,12 +1591,9 @@ body {
 }
 
 .mainWindow .info .clearSelectedHalf {
-  margin-top: 2px;
-
   position: absolute;
-  right: 12px;
-  height: 38px;
-  width: 32%;
+  right: 10px;
+  width: 20%;
   font-size: 16px;
   cursor: pointer;
   border-radius: 4px;
@@ -1651,6 +1642,9 @@ body {
 .order, .car {
   padding: 10px;
   margin-bottom: 10px;
+
+  height: 120px;
+
   display: flex;
   flex-direction: column;
 
@@ -1736,11 +1730,9 @@ body {
   margin-bottom: 8px;
   margin-right: 32px;
 
-  max-height: 134px;
+  overflow-x: scroll;
 
-  overflow-x: hidden;
-
-  display: block;
+  display: flex;
 
   font-family: var(--main-font);
   font-size: 15px;
@@ -1753,12 +1745,11 @@ body {
 }
 
 .car .header {
-  margin: auto 30px auto 0;
-  margin-right: 30px;
   position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: 34px;
   color: var(--text-color);
   background: var(--sub-color);
 }
@@ -1788,7 +1779,7 @@ body {
 }
 
 .car.editingCar .header .name {
-  width: 200px;
+  width: 260px;
   position: relative;
   left: 2px;
 }
@@ -1807,6 +1798,8 @@ body {
 .car .body {
   margin-top: 4px;
   display: flex;
+  min-height: 65%;
+  overflow: hidden;
 }
 
 .info-order-car .vs__selected-options {
@@ -1841,20 +1834,18 @@ body {
 .car .description {
   transition: color 0.3s ease-in-out 0.4s, background-color 0.3s ease-in-out 0.4s, min-width 0.3s ease-in-out 0.1s;
   font-size: 15px;
-  /* -webkit-line-clamp: 2;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden; */
-  display: table;
   border: none;
+  padding: 4px 4px;
   outline: none;
   resize: none;
   line-height: 1.3;
   background-color: transparent;
   font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
   color: var(--main-color);
+  min-height: 100%;
   max-width: 262px;
   min-width: 262px;
+  overflow-y: hidden;
 }
 
 .car.editingCar .description {
@@ -1895,7 +1886,6 @@ body {
 }
 
 .car .body .checkbox-label {
-  transform: translate(45px, 10px);
   width: 70px;
   top: -20px;
   padding-left: 23px;
