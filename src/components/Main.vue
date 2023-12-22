@@ -50,15 +50,6 @@
                   </div>
                   <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(selectedOrderForShow ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
-                  <div class="info-order-car">
-                    <div class="auto">Автомобиль: </div>
-                    <div style="width: 100%; padding-left: 5px; margin-top: -3px; font-size: 16px;">
-                      <div v-if="carIsNotFindInList()" style="padding-left: 10px; margin-top: 3px;">Скрыт</div>
-                      <vue-select style="height: 34px;" :clearable="false" label="label" v-else-if="!carIsNotFindInList() && (editingOrder || !selectedOrderForShow)" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
-                      <div class="label-car" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
-                      <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : (editingOrder || !selectedOrderForShow ? selectedCar.desc : getCarDescById(selectedOrder.car))" />
-                    </div>
-                  </div>
                   <div class="info-order">
                     <div class="dateSettings">
                       <div style="min-width: 130px;">
@@ -87,6 +78,15 @@
                       <div class="d-flex" v-if="!isBlockElementForEditingOrder()">
                         <a v-if="avalibleCars.length > 0" href="#" @click="openModalRecomendedCar()" class="href-open-modal">Найдены подходящие машины</a>
                         <div v-else>Не найдено подходящих машин</div>
+                      </div>
+                    </div>
+                    <div class="info-order-car">
+                      <div class="auto">Автомобиль: </div>
+                      <div style="width: 100%; padding-left: 5px; margin-top: -3px; font-size: 16px;">
+                        <div v-if="carIsNotFindInList()" style="padding-left: 10px; margin-top: 3px;">Скрыт</div>
+                        <vue-select style="height: 34px;" :clearable="false" label="label" v-else-if="!carIsNotFindInList() && (editingOrder || !selectedOrderForShow)" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
+                        <div class="label-car" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
+                        <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : (editingOrder || !selectedOrderForShow ? selectedCar.desc : getCarDescById(selectedOrder.car))" />
                       </div>
                     </div> 
                     <div>
@@ -122,7 +122,7 @@
                     Список рекомендованных машин
                     <table class="recomended-table">
                         <tr v-for="car in avalibleCars" @click="selectCar(car)">
-                          <td>{{ car.label }}</td>
+                          <td class="recomended-car">{{ car.label }}</td>
                         </tr>
                     </table>
                   </div>
@@ -592,6 +592,7 @@ export default {
         if (car.id !== this.selectedCar.id) {
           this.selectedCar = car;
           this.setInCalendarPlanCar(car.id, this.showDate);
+          this.openRecomendedCar = false;
         }
       } else if (car && car.id === -1) {
         car.id = -2
@@ -1261,7 +1262,7 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
-.modal-accept-delete .recomended-table tr:hover {
+.modal-accept-delete .recomended-table tr:hover, .recomended-table td:hover {
   background-color: var(--border-color);
 }
 
@@ -1314,7 +1315,7 @@ body {
   background-color: #fafafa !important;
 }
 .block-order .info-order .description {
-  height: 340px;
+  height: 193px;
   overflow: auto;
   pointer-events: auto;
 }
@@ -1600,6 +1601,7 @@ body {
 }
 
 .info-order .dateSettings {
+  margin-top: 25px;
   width: 100%;
   justify-content: space-between;
   table-layout: fixed;
@@ -1623,7 +1625,7 @@ body {
 
 .info-order .description {
   width: 98%;
-  height: 340px;
+  height: 290px;
   resize: none;
   font-size: 18px;
   outline: none;
@@ -2049,9 +2051,9 @@ input[type="date"]{
 }
 
 .href-recomended-car {
+  margin-top: 10px;
   display: flex;
   color: var(--button-active) !important; 
-  margin-top: -10px; 
   min-height: 24px;
 }
 
