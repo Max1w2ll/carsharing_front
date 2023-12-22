@@ -46,7 +46,7 @@
                 <div style="display: flex; justify-content: space-between;">
                   <div class = "rectangleGreen">
                     <div v-if="!userIsAdmin()" style="padding-left: 10px;">{{ selectedOrder.status }}</div>
-                    <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin()" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
+                    <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin() && selectedOrder.id" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
                   </div>
                   <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(selectedOrderForShow ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
@@ -133,9 +133,21 @@
 
       <div class="lastPanel">
         <div class="availableCars">
-        <div class="panel-header"> ДОСТУПНЫЕ МАШИНЫ </div>
+          <div class="tab-container">
+            <ul class="tabs clearfix">
+              <li :class="{ active: activeTab === TABS.FREE }">
+                <a href="#" @click="setActiveTab(TABS.FREE)">Свободные сегодня</a>
+              </li>
+              <li :class="{ active: activeTab === TABS.ALL }">
+                <a href="#" @click="setActiveTab(TABS.ALL)">Весь автопарк</a>
+              </li>
+              <li :class="{ active: activeTab === TABS.AVAL }">
+                <a href="#" @click="setActiveTab(TABS.AVAL)">Доступные машины</a>
+              </li>
+            </ul>
+          </div>
           <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
-            <div class="car" :data-key="car.id" v-for="car in cars" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
+            <div class="car" :data-key="car.id" v-for="car in getCarsByTabs()" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
               <div class="header">
                 <input class="name" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
                 <input v-if="car.id !== -1" class="carNumber" v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin() }"/>
@@ -143,10 +155,10 @@
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" @click.prevent="shareCarPanel(car.id)"> ! </div> 
               </div>
               <div class="body">
-                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" v-model="car.desc" />
+                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" v-model="car.desc" :title="car.desc" />
                 <div v-if="car.id !== -1">
                   <input type="checkbox" :id="'scales_' + car.id" class="custom-checkbox" :checked="intToBool(car.isShowInList)" @change="updateShowInList(car, $event.target.checked)">
-                  <label :for="'scales_' + car.id" class="checkbox-label">Показать в выдаче</label>
+                  <label :for="'scales_' + car.id" class="checkbox-label">Доступность</label>
                   <div style="display: flex">
                     <button @click.prevent="saveCar(car)" class="save-car" :class="{ 'full-save-car': car.id === -2 }"> Сохранить </button> 
                     <button v-if="car.id !== -2" @click.prevent="deleteCar(car)" class="delete-car" :class="{ 'ready-delete': readyForRemoveCar }"> 🗑️ </button> 
@@ -248,6 +260,11 @@ export default {
           DENY: 'Отклонен',
           PROCESS: 'В обработке'
         },
+        TABS: {
+          AVAL: 'availableCars',
+          ALL: 'allFleet',
+          FREE: 'freeToday'
+        },
         statusesList: () => [], 
 
         userJWT: () => [], 
@@ -267,6 +284,7 @@ export default {
         editingCar: {},
         editingOrderHolder: {},
 
+        activeTab: '',
         selectedOrderForShow: false,
         editingOrder: false,
         readyForRemoveCar: false,
@@ -278,7 +296,8 @@ export default {
           id: -1,
           isShowInList: 1,
           name: "Новая машина",
-          number: ""
+          number: "",
+          isAvalibleNow: 1
         },
 
         orderInfo: {
@@ -362,6 +381,7 @@ export default {
 
     updateShowInList(car, value) {
       this.cars[this.cars.findIndex(it => it.id === car.id)].isShowInList = value ? 1 : 0;
+      this.setActiveTab(this.TABS.ALL);
     },
 
     updateShowActual(value) {
@@ -376,12 +396,34 @@ export default {
       return this.PARRENT_URL + (this.userIsAdmin() ? 'manager/' : 'employee/') + secondPartUrl
     },
 
+    setActiveTab(tabName) {
+      this.activeTab = tabName;
+      if (!this.getCarsByTabs().find(it => it.id == this.selectedCar.id)) {
+        this.selectCar(this.getCarsByTabs()[0]);
+      }
+      setTimeout(async () => {
+        this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+      }, 500);
+    },
+
+    getCarsByTabs() {
+      if (this.cars.length !== 0) {
+        if (this.activeTab == this.TABS.FREE) {
+          return this.cars.filter(it => it.isAvalibleNow && it.isShowInList);
+        } else if (this.activeTab == this.TABS.AVAL) {
+          return this.cars.filter(it => it.isShowInList);
+        }
+      }
+      return this.cars;
+    },
+
     shareCarPanel(carId) {
       this.readyForRemoveCar = false;
       if (this.editingCar.id === null || this.editingCar.id !== carId) {
         this.shareCarPanel(this.editingCar.id);
         this.editingCar = { ...this.cars.find(it => it.id === carId) };
         if (carId === -2) {
+          this.selectedCar.id = -2;
           const observer = new ResizeObserver(() => {
             this.$refs.carListRef.scrollLeft += 1500;
             observer.disconnect();
@@ -413,6 +455,7 @@ export default {
             name: car.name,
             number: car.number,
             isShowInList: car.isShowInList === 1,
+            isAvalibleNow: car.isAvalibleNow === 1,
             desc: car.desc,
           }
           axios.post(this.getFullUrl(API_LINKS.CAR_POST), carForSave, { withCredentials: true })
@@ -427,6 +470,7 @@ export default {
             name: car.name,
             number: car.number,
             isShowInList: car.isShowInList === 1,
+            isAvalibleNow: car.isAvalibleNow === 1,
             desc: car.desc,
           }
           axios.patch(this.getFullUrl(API_LINKS.CAR_PATCH), carForSave, { withCredentials: true })
@@ -584,6 +628,18 @@ export default {
     },
 
     selectCar(car) {
+      while (!this.getCarsByTabs().find(it => it.id == car.id)) {
+        if (this.activeTab == this.TABS.FREE) {
+          this.activeTab = this.TABS.AVAL;
+        } else if (this.activeTab == this.TABS.AVAL) {
+          this.activeTab = this.TABS.ALL;
+        } else {
+          break;
+        }
+        setTimeout(async () => {
+          this.scrollElementInList(this.selectedCar, this.$refs.carListRef, true);
+        }, 500);
+      }
       if (car && car.id !== -1) {
         if (car.id !== this.selectedCar.id) {
           this.selectedCar = car;
@@ -604,12 +660,10 @@ export default {
             it.label = '[' + it.number + '] ' + it.name;
             return it;
           });
-          if (this.cars && this.cars[0])  {
-            this.selectCar(this.cars[0]);
-          }
           if (this.userIsAdmin()) {
             this.cars.push({ ...this.emptyCar });
           }
+          this.setActiveTab(this.TABS.AVAL);
       });
     },
 
@@ -1378,12 +1432,17 @@ body {
   transition: min-width 0.3s ease-in-out 0.1s;
   margin: 10px;
   margin-right: 0;
-  min-width: 270px;
-  max-width: 270px;
+  min-width: 210px;
+  max-width: 210px;
+}
+
+.mainWindow .availableCars {
+  margin-top: 5px;
+  padding-bottom: 10px;
 }
 
 .mainWindow .availableCars .car.editingCar {
-  min-width: 405px;
+  min-width: 340px;
 }
 
 .mainWindow .availableCars .car.new-car-panel {
@@ -1399,14 +1458,22 @@ body {
   pointer-events: none;
 }
 
+.mainWindow .availableCars .car.new-car-panel .header {
+  max-height: 34px;
+  min-height: 34px;
+}
+
 .mainWindow .availableCars .car.new-car-panel .name {
-  max-width: 104px;
+  max-width: 102px;
+  margin-left: 0;
   pointer-events: none;
+  margin-top: 4px;
 }
 
 .lastPanel .car .header .editCar {
   position: absolute;
   right: 11px;
+  top: -2px;
   transform: rotate(-135deg);
   transform-origin: 50% 50%;
   white-space: nowrap;
@@ -1421,6 +1488,10 @@ body {
 
 .mainWindow .availableCars .car:hover, .mainWindow .orderList .order:hover,.mainWindow .history .date:hover {
   background-color: #eeeeee;
+}
+
+.mainWindow .availableCars .car, .mainWindow .orderList .order {
+  border-radius: 5px;
 }
 
 .orderList {
@@ -1717,7 +1788,6 @@ body {
 }
 
 .lastPanel .carList {
-  margin-top: 10px;
   margin-bottom: 8px;
   margin-right: 32px;
 
@@ -1730,6 +1800,92 @@ body {
   border: 1px solid var(--border-color);
 }
 
+.tab-container{
+  margin: 0;
+  padding: 0;
+  max-height: 35px;
+  padding-top: 1px;
+}
+
+ul.tabs{
+  margin: 0;
+  list-style-type: none;
+  line-height: 35px;
+  max-height: 35px;
+  overflow: hidden;
+  display: inline-block;
+  padding-right: 10px;
+  margin-left: -27px;
+}
+
+ul.tabs > li.active{
+  z-index: 2;
+  background: var(--div-color);
+}
+
+ul.tabs > li.active:before{
+  border-color: transparent var(--div-color) transparent transparent;
+}
+
+
+ul.tabs > li.active:after{
+  border-color: transparent transparent transparent var(--div-color);
+}
+
+ul.tabs > li{
+  float: right;
+  margin: 5px -10px 0;
+  border-top-right-radius: 25px 170px;
+  border-top-left-radius: 5px 90px;
+  padding: 0 30px 0 15px;
+  height: 170px;
+  background: #eeeeee;
+  position: relative;
+  box-shadow: 0 4px 7px rgba(0,0,0,.5)
+}
+
+ul.tabs > li > a{
+  display: inline-block;
+  max-width:100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  color: var(--main-color);
+  font-size: 21px;
+  margin-top: -3px;
+  padding-left: 3px;
+}
+
+ul.tabs > li:before, ul.tabs > li:after{
+  content: '';
+  background: transparent;
+  height: 20px;
+  width: 20px;
+  border-radius: 100%;
+  border-width: 10px;
+  top: 0px;
+  border-style: solid;
+  position: absolute;
+}
+
+ul.tabs > li:before{
+  border-color: transparent #eeeeee transparent transparent;
+  -webkit-transform: rotate(48deg);
+  left: -23px;
+}
+
+ul.tabs > li:after{
+  border-color: transparent transparent transparent #eeeeee;
+  -webkit-transform: rotate(-48deg);
+  right: -17px;
+}
+
+/* Clear Fix took for HTML 5 Boilerlate*/
+
+.clearfix:before, .clearfix:after { content: ""; display: table; }
+.clearfix:after { clear: both; }
+.clearfix { zoom: 1; }
+
 .selected {
   background-color: var(--text-color-hover-active);
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
@@ -1737,21 +1893,20 @@ body {
 
 .car .header {
   position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 34px;
   color: var(--text-color);
   background: var(--sub-color);
+  min-height: 56px;
 }
 
 .car .header .name,.car .header .carNumber {
   transition: color 0.3s ease-in-out 0.3s, background-color 0s ease-in-out 0s, min-width 0.3s ease-in-out 0.1s;
   font-size: 15px;
-  width: 125px;
+  width: 200px;
+  margin-top: 2px;
+  margin-left: 2px;
   border: none;
   border-radius: 4px;
-  padding: 6px 4px;
+  padding: 4px 4px;
   color: var(--text-color);
   background-color: var(--sub-color);
   outline: none;
@@ -1769,17 +1924,8 @@ body {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
-.car.editingCar .header .name {
-  width: 260px;
+.car.editingCar .header .name, .car .header .carNumber {
   position: relative;
-  left: 2px;
-}
-
-.car .header .carNumber {
-  text-align: center;
-  max-width: 90px;
-  position: relative;
-  right: 28px;
 }
 
 .car .header .carNumber-employee {
@@ -1789,7 +1935,7 @@ body {
 .car .body {
   margin-top: 4px;
   display: flex;
-  min-height: 65%;
+  min-height: 50%;
   overflow: hidden;
 }
 
@@ -1834,8 +1980,8 @@ body {
   font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
   color: var(--main-color);
   min-height: 100%;
-  max-width: 262px;
-  min-width: 262px;
+  max-width: 202px;
+  min-width: 202px;
   overflow-y: hidden;
 }
 
@@ -1879,7 +2025,7 @@ body {
 .car .body .checkbox-label {
   width: 70px;
   top: -20px;
-  padding-left: 23px;
+  padding-left: 6px;
 }
 
 .history .checkbox-label {
@@ -1898,8 +2044,8 @@ body {
 }
 
 .car .body .checkbox-label:before {
-  left: 110px;
-  top: 13px;
+  left: 104px;
+  top: 4px;
 }
 
 .history .checkbox-label:before {
@@ -1916,8 +2062,8 @@ body {
 }
 
 .car .body .save-car {
-  margin-top: -8px;
-  margin-left: 9px;
+  margin-top: -15px;
+  margin-left: 4px;
   height: 32px;
   width: 90px;
   color: var(--ready-border);
@@ -1938,7 +2084,7 @@ body {
 }
 
 .car .body .delete-car {
-  margin-top: -8px;
+  margin-top: -15px;
   margin-left: 4px;
   height: 32px;
   width: 32px;

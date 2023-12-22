@@ -230,6 +230,7 @@
 <style>
   @import "vue-select/dist/vue-select.css";
   .modal-backdrop {
+    z-index: 200;
     position: fixed;
     top: 0;
     bottom: 0;
