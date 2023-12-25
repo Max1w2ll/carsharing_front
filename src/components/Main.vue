@@ -1776,6 +1776,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--sub-color);
+  cursor: pointer;
 }
 
 .order .header {
