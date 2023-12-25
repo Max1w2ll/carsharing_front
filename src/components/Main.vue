@@ -741,7 +741,7 @@ export default {
           .then((res) => {
             this.avalibleCars = [];
             res.data.forEach(it => {
-              const findElement = this.cars.find(car => car.id === it.id);
+              const findElement = this.cars.find(car => car.id === it.id && it.isShowInList);
               if (findElement) {
                 this.avalibleCars.push(findElement);
               }
