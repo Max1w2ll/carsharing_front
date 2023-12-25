@@ -152,7 +152,7 @@
             <div class="car" :data-key="car.id" v-for="car in getCarsByTabs()" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id, 'hide': car.isShowInList === false }">
               <div class="header" :class="{ 'hide': !car.isShowInList }">
                 <input class="name" :class="{ 'hide': !car.isShowInList }" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
-                <input v-if="car.id !== -1" class="carNumber"  v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin(), 'hide': car.isShowInList === false }"/>
+                <input v-if="car.id !== -1" class="carNumber"  v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin(), 'hide': !car.isShowInList }"/>
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" :class="{ 'closeCar': car.id === editingCar.id }" @click.prevent="shareCarPanel(car.id)"> ! </div> 
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" @click.prevent="shareCarPanel(car.id)"> ! </div> 
               </div>
