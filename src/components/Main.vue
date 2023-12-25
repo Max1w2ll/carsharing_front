@@ -1288,6 +1288,10 @@ body {
   font-size: 18px;
 }
 
+.modal-content .close {
+  cursor: pointer;
+}
+
 .modal-accept-delete .modal-content .buttons {
   display: flex;
   justify-content: space-around; 
@@ -1310,6 +1314,10 @@ body {
 
 .modal-accept-delete .recomended-table tr {
   border-bottom: 1px solid var(--border-color);
+}
+
+.recomended-table td {
+  cursor: pointer;
 }
 
 .modal-accept-delete .recomended-table tr:hover, .recomended-table td:hover {
@@ -1435,6 +1443,7 @@ body {
   margin-right: 0;
   min-width: 210px;
   max-width: 210px;
+  cursor: pointer;
 }
 
 .mainWindow .availableCars {
@@ -1481,6 +1490,7 @@ body {
   font-size: 25px;
   cursor: default;
   transition: transform 0.3s ease-in-out 0.1s;
+  cursor: pointer;
 }
 
 .lastPanel .car .header .editCar.closeCar {
@@ -1919,6 +1929,7 @@ ul.tabs > li:after{
   outline: none;
   height: 17px;
   font-size: 15px;
+  cursor: pointer;
 }
 
 .car.editingCar .header .name,.car.editingCar .header .carNumber {
@@ -1944,6 +1955,7 @@ ul.tabs > li:after{
   display: flex;
   min-height: 50%;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .info-order-car .vs__selected-options {
@@ -1990,6 +2002,7 @@ ul.tabs > li:after{
   max-width: 202px;
   min-width: 202px;
   overflow-y: hidden;
+  cursor: pointer;
 }
 
 .car.editingCar .description {
@@ -2197,6 +2210,10 @@ input[type="date"]{
   display: flex;
   color: var(--button-active) !important; 
   min-height: 24px;
+}
+
+.vs__search, .vs__selected-options, .vs__dropdown-toggle, .vs__open-indicator {
+  cursor: pointer;
 }
 
 </style>
