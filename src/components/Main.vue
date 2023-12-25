@@ -150,14 +150,14 @@
           </div>
           <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
             <div class="car" :data-key="car.id" v-for="car in getCarsByTabs()" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id, 'hide': car.isShowInList === false }">
-              <div class="header" :class="{ 'hide': car.isShowInList === false }">
-                <input class="name" :class="{ 'hide': car.isShowInList === false }" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
+              <div class="header" :class="{ 'hide': !car.isShowInList }">
+                <input class="name" :class="{ 'hide': !car.isShowInList }" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
                 <input v-if="car.id !== -1" class="carNumber"  v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin(), 'hide': car.isShowInList === false }"/>
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" :class="{ 'closeCar': car.id === editingCar.id }" @click.prevent="shareCarPanel(car.id)"> ! </div> 
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" @click.prevent="shareCarPanel(car.id)"> ! </div> 
               </div>
               <div class="body">
-                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" :class="{'hide': car.isShowInList === false}" v-model="car.desc" :title="car.desc" />
+                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" :class="{'hide': !car.isShowInList}" v-model="car.desc" :title="car.desc" />
                 <div v-if="car.id !== -1">
                   <input type="checkbox" :id="'scales_' + car.id" class="custom-checkbox" :checked="intToBool(car.isShowInList)" @change="updateShowInList(car, $event.target.checked)">
                   <label :for="'scales_' + car.id" class="checkbox-label">Доступность</label>
