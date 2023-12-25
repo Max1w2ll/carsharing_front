@@ -149,15 +149,15 @@
             </ul>
           </div>
           <div class="carList" ref="carListRef" @wheel="scrollHorizontally">
-            <div class="car" :data-key="car.id" v-for="car in getCarsByTabs()" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id }">
-              <div class="header">
-                <input class="name" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
-                <input v-if="car.id !== -1" class="carNumber" v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin() }"/>
+            <div class="car" :data-key="car.id" v-for="car in getCarsByTabs()" :key="car.id" @click="selectCar(car)" :class="{ 'new-car-panel': car.id === -1 , 'selected': car.id === selectedCar.id, 'editingCar': car.id === editingCar.id, 'hide': car.isShowInList === false }">
+              <div class="header" :class="{ 'hide': car.isShowInList === false }">
+                <input class="name" :class="{ 'hide': car.isShowInList === false }" v-bind:readonly="car.id !== editingCar.id" v-model="car.name" />
+                <input v-if="car.id !== -1" class="carNumber"  v-bind:readonly="car.id !== editingCar.id" v-model="car.number" :class="{ 'carNumber-employee': !userIsAdmin(), 'hide': car.isShowInList === false }"/>
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" :class="{ 'closeCar': car.id === editingCar.id }" @click.prevent="shareCarPanel(car.id)"> ! </div> 
                 <div v-if="car.id !== -1 && userIsAdmin()" class="editCar" @click.prevent="shareCarPanel(car.id)"> ! </div> 
               </div>
               <div class="body">
-                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" v-model="car.desc" :title="car.desc" />
+                <textarea v-if="car.id !== -1" v-bind:readonly="car.id !== editingCar.id" class="description" :class="{'hide': car.isShowInList === false}" v-model="car.desc" :title="car.desc" />
                 <div v-if="car.id !== -1">
                   <input type="checkbox" :id="'scales_' + car.id" class="custom-checkbox" :checked="intToBool(car.isShowInList)" @change="updateShowInList(car, $event.target.checked)">
                   <label :for="'scales_' + car.id" class="checkbox-label">Доступность</label>
@@ -1043,6 +1043,7 @@ export default {
 
   --main-color: #2767c9;
   --sub-color: #2767c9;
+  --hide-color: #647f9e;
   --main-background: #f1f8ff;
   --sub-background: #182D57;
 
@@ -1488,6 +1489,10 @@ body {
 
 .mainWindow .availableCars .car.editingCar {
   min-width: 340px;
+}
+
+.car.hide {
+  border: 1px solid var(--hide-color);
 }
 
 .mainWindow .availableCars .car.new-car-panel {
@@ -1951,7 +1956,11 @@ ul.tabs > li:after{
   min-height: 56px;
 }
 
-.car .header .name,.car .header .carNumber {
+.car .header.hide {
+  background: var(--hide-color)
+}
+
+.car .header .name, .car .header .carNumber {
   transition: color 0.3s ease-in-out 0.3s, background-color 0s ease-in-out 0s, min-width 0.3s ease-in-out 0.1s;
   font-size: 15px;
   width: 200px;
@@ -1966,6 +1975,10 @@ ul.tabs > li:after{
   height: 17px;
   font-size: 15px;
   cursor: pointer;
+}
+
+.car .header .name.hide, .car .header .carNumber.hide {
+  background-color: var(--hide-color);
 }
 
 .car.editingCar .header .name,.car.editingCar .header .carNumber {
@@ -2039,6 +2052,10 @@ ul.tabs > li:after{
   min-width: 202px;
   overflow-y: hidden;
   cursor: pointer;
+}
+
+.car .description.hide {
+  color: var(--hide-color);
 }
 
 .car.editingCar .description {
