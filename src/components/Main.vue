@@ -118,8 +118,10 @@
                 </div>
                 <div v-if="openRecomendedCar" class="modal-recomended-car">
                   <div class="modal-content">
-                    <span class="close" @click="openRecomendedCar = false">&times;</span>
-                    Список рекомендованных машин
+                    <div class="header">
+                      Список рекомендованных машин
+                      <span class="close" @click="openRecomendedCar = false">&times;</span>
+                    </div>
                     <table class="recomended-table">
                         <tr v-for="car in avalibleCars" @click="selectCar(car)">
                           <td class="recomended-car">{{ car.label }}</td>
@@ -1000,6 +1002,14 @@ export default {
       await this.getUserInfo();
       this.getCars();
       this.getOrders();
+    },
+    
+    onEscKeyPress(event) {
+      if (event.key === 'Escape') {
+        this.openRecomendedCar = false;
+        this.readyForRemoveOrder = false;
+        this.showCreateOrderDialog = false;
+      }
     }
 
   },
@@ -1008,6 +1018,7 @@ export default {
     this.statusesList = [this.STATUS_ORDER.DONE, this.STATUS_ORDER.PROCESS, this.STATUS_ORDER.DENY]
     setTimeout(async () => {
       this.loadData();
+      window.addEventListener('keydown', this.onEscKeyPress);
       setInterval(async () => {
         this.loadData();
       }, 1000 * 60 * 20)
@@ -1288,8 +1299,32 @@ body {
   font-size: 18px;
 }
 
-.modal-content .close {
+.modal-recomended-car .close {
   cursor: pointer;
+  font-size: 24px;
+  margin-top: -6px;
+}
+
+.modal-recomended-car table {
+  width: 100%;
+  padding-top: 10px;
+}
+
+.modal-recomended-car td {
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.modal-recomended-car .header {
+  display: flex;
+  justify-content: space-around;     
+  color: var(--text-color);
+  border-radius: 5px;
+  background-color: var(--main-color);
+  padding-top: 5px;
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: 5px;
 }
 
 .modal-accept-delete .modal-content .buttons {
@@ -1671,7 +1706,7 @@ body {
 .mainWindow .info .clearSelectedHalf {
   position: absolute;
   right: 10px;
-  width: 20%;
+  width: 35%;
   font-size: 16px;
   cursor: pointer;
   border-radius: 4px;
