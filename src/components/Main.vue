@@ -137,14 +137,14 @@
         <div class="availableCars">
           <div class="tab-container">
             <ul class="tabs clearfix">
-              <li :class="{ active: activeTab === TABS.FREE }">
-                <a href="#" @click="setActiveTab(TABS.FREE)">Свободные сегодня</a>
-              </li>
               <li :class="{ active: activeTab === TABS.ALL }">
                 <a href="#" @click="setActiveTab(TABS.ALL)">Весь автопарк</a>
               </li>
               <li :class="{ active: activeTab === TABS.AVAL }">
                 <a href="#" @click="setActiveTab(TABS.AVAL)">Доступные машины</a>
+              </li>
+              <li :class="{ active: activeTab === TABS.FREE }">
+                <a href="#" @click="setActiveTab(TABS.FREE)">Свободные сегодня</a>
               </li>
             </ul>
           </div>
@@ -166,6 +166,18 @@
                     <button v-if="car.id !== -2" @click.prevent="deleteCar(car)" class="delete-car" :class="{ 'ready-delete': readyForRemoveCar }"> 🗑️ </button> 
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+          <div class="legenda">
+            <div class="text-block">
+              <div class="circle-with-text">
+                <div class="circle avalible"></div>
+                Доступные
+              </div>
+              <div class="circle-with-text">
+                <div class="circle unavalible"></div>
+                Недоступные
               </div>
             </div>
           </div>
@@ -646,7 +658,6 @@ export default {
         if (car.id !== this.selectedCar.id) {
           this.selectedCar = car;
           this.setInCalendarPlanCar(car.id, this.showDate);
-          this.openRecomendedCar = false;
         }
       } else if (car && car.id === -1) {
         car.id = -2
@@ -654,6 +665,7 @@ export default {
         this.currentPlan = null;
         this.shareCarPanel(car.id);
       }
+      this.openRecomendedCar = false;
     },
 
     getCars() {
@@ -666,7 +678,7 @@ export default {
           if (this.userIsAdmin()) {
             this.cars.push({ ...this.emptyCar });
           }
-          this.setActiveTab(this.TABS.AVAL);
+          this.setActiveTab(this.TABS.FREE);
       });
     },
 
@@ -1438,6 +1450,7 @@ body {
   margin-right: 32px;
   height: 550px;
   font-size: 19px;
+  padding-top: 2px;
 }
 
 .mainWindow .history .date {
@@ -1484,7 +1497,6 @@ body {
 
 .mainWindow .availableCars {
   margin-top: 5px;
-  padding-bottom: 10px;
 }
 
 .mainWindow .availableCars .car.editingCar {
@@ -1846,7 +1858,6 @@ body {
 }
 
 .lastPanel .carList {
-  margin-bottom: 8px;
   margin-right: 32px;
 
   overflow-x: scroll;
@@ -2205,6 +2216,16 @@ ul.tabs > li:after{
 .legenda .text-block .circle-with-text .solid {
   background-color: var(--main-color);
   border: 2px solid var(--main-color);
+}
+
+.legenda .text-block .circle-with-text .unavalible {
+  border: 1px solid var(--hide-color);
+  background-color: var(--hide-color);  
+}
+
+.legenda .text-block .circle-with-text .avalible {
+  border: 1px solid var(--main-color);
+  background-color: var(--main-color);
 }
 
 .legenda .text-block .circle-with-text .outlined {
