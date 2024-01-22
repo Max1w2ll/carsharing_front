@@ -45,8 +45,8 @@
               <div class="inter-square">
                 <div style="display: flex; justify-content: space-between;">
                   <div class = "rectangleGreen">
-                    <div v-if="!userIsAdmin()" style="padding-left: 10px;">{{ selectedOrder.status }}</div>
-                    <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin() && selectedOrder.id" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
+                    <div v-if="!userIsAdmin() || isBlockElementForEditingOrder()" style="padding-left: 10px;">{{ selectedOrder.status }}</div>
+                    <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin() && selectedOrder.id && !isBlockElementForEditingOrder()" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
                   </div>
                   <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(selectedOrderForShow ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
@@ -102,7 +102,7 @@
                   <div class="controller-order">
                     <button class="createOrder" v-if="editingOrder || !selectedOrderForShow || isBlockActivateEditingOrder()" :class="{ 'width-100': !selectedOrderForShow}" @click.prevent="createOrder()"> {{ selectedOrderForShow ? "Сохранить" : "Создать"}} </button>
                     <button class="activate-editing-order" v-else @click.prevent="activateEditingOrder()"> Изменить </button>
-                    <button class="deleteOrder" v-if="selectedOrderForShow" @click.prevent="openModalDeleteOrder()"> Удалить заказ </button>
+                    <button class="deleteOrder" v-if="selectedOrderForShow" @click.prevent="openModalDeleteOrder()"> Удалить заявку </button>
                   </div>
                 </div>
                 <div v-if="readyForRemoveOrder" class="modal-accept-delete">
