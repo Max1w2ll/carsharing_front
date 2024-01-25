@@ -96,7 +96,9 @@
                     </div>
                     <div>
                       <div class="author"> Автор заявки: {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </div>
-                      <div class="admin"> Администратор: {{ selectedOrder.adminName }} </div>
+                      <vue-select :options="coordinators"/>
+                      <div class="admin"> Согласующий: 
+                      </div>
                     </div>
                   </div>
                   <div class="controller-order">
@@ -269,6 +271,9 @@ export default {
         USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
+        COORDINATORS_GET: 'https://portal.npf-isb.ru/employee-base/api/users/groups/10-01%20%D0%93%D1%80%D1%83%D0%BF%D0%BF%D0%B0%20%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D0%B0%D0%BC%D0%B8',
+        COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%90%D0%B1%D1%80%D0%B0%D0%BC%D0%BE%D0%B2%D0%B8%D1%87',
+
         STATUS_ORDER: {
           DONE: 'Одобрен',
           DENY: 'Отклонен',
@@ -290,6 +295,8 @@ export default {
 
         showActual: true,
         searchTextOrder: '',
+
+        coordinators: [],
 
         selectedOrder: {},
         selectedCar: {},
@@ -693,6 +700,22 @@ export default {
       })
     },
 
+    async getCoordinators() {
+      await axios.get(this.COORDINATORS_GET, { withCredentials: true })
+      .then((res) => {
+        let coordinatorsData = res.data;
+        coordinatorsData.forEach(element => {
+          this.coordinators.push(element.displayName);
+        });
+        console.log(this.coordinators);
+        // axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
+        // .then((res) => {
+        //   this.coordinators.push(res);
+        //   console.log(this.coordinators);
+        // })
+      })
+    },
+
     async getOrder(orderId) {
       const order = this.orders.find(obj => obj.id === orderId);
       if (order) {
@@ -1027,6 +1050,7 @@ export default {
   },
 
   mounted() {
+    this.getCoordinators();
     this.statusesList = [this.STATUS_ORDER.DONE, this.STATUS_ORDER.PROCESS, this.STATUS_ORDER.DENY]
     setTimeout(async () => {
       this.loadData();
