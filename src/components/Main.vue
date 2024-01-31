@@ -4,37 +4,47 @@
     <div>
     <div class="mainWindow">
       <div class="history">
-        <div class="panel-header"> ИСТОРИЯ </div>
-        <div style="display: flex">
-          <input type="checkbox" id='showActual' class="custom-checkbox" v-model="showActual">
-          <label for='showActual' class="checkbox-label">Только актуальные</label>
-        </div>
-        <div class="search-box">
-          <label class="search-label">Поиск</label>
-          <div style="width: 100%;">
-            <input class="search-area" v-model="searchTextOrder"/>
+        <ul class="tabs clearfix" style="margin-top: 10px; margin-left: -45px">
+          <li>
+            <a href="#"> На согласование </a>
+          </li>
+          <li class="active">
+            <a href="#"> История </a>
+          </li>
+        </ul>
+        <!-- <div class="panel-header"> ИСТОРИЯ </div> -->
+        <div class="square">
+          <div style="display: flex">
+            <input type="checkbox" id='showActual' class="custom-checkbox" v-model="showActual">
+            <label for='showActual' class="checkbox-label">Только актуальные</label>
           </div>
-        </div>
-        <div class="orderList" ref="orderListRef" :class="{ 'orderList-employee': !userIsAdmin() }">
-          <div class="order" @click="getOrder(order.id)" v-for="order in filteredItems" :key="order.id" :data-key="order.id" :class="{ 'selected': order.id === selectedOrder.id }">
-            <div class="header">
-              <p class="status">{{ order.status }}</p>
-              <p class="auto-number">{{ order.numberCar }}</p>
-            </div>
-            <div class="body">
-              <div class="username"> {{ order.username }}</div>
-              <div class="dates"> {{ formatDate(order.beginDate) }} - {{ formatDate(order.endDate) }}</div>
-              <div class="description"> {{ order.desc }}</div>
+          <div class="search-box">
+            <label class="search-label">Поиск</label>
+            <div style="width: 100%;">
+              <input class="search-area" v-model="searchTextOrder"/>
             </div>
           </div>
-          <div class="noOrders" v-if="orders.length == 0">
-            <img src="../assets/icons/noOrders.png" width="74" height="74"> 
-            <p> Заказов нет! </p>
-            <p> Cоздайте новый </p>
+          <div class="orderList" ref="orderListRef" :class="{ 'orderList-employee': !userIsAdmin() }">
+            <div class="order" @click="getOrder(order.id)" v-for="order in filteredItems" :key="order.id" :data-key="order.id" :class="{ 'selected': order.id === selectedOrder.id }">
+              <div class="header">
+                <p class="status">{{ order.status }}</p>
+                <p class="auto-number">{{ order.numberCar }}</p>
+              </div>
+              <div class="body">
+                <div class="username"> {{ order.username }}</div>
+                <div class="dates"> {{ formatDate(order.beginDate) }} - {{ formatDate(order.endDate) }}</div>
+                <div class="description"> {{ order.desc }}</div>
+              </div>
+            </div>
+            <div class="noOrders" v-if="orders.length == 0">
+              <img src="../assets/icons/noOrders.png" width="74" height="74"> 
+              <p> Заказов нет! </p>
+              <p> Cоздайте новый </p>
+            </div>
           </div>
-        </div>
-        <div style="padding-right: 32px">
-          <button class="records" v-if="userIsAdmin()" @click.prevent="openCreateOrderDialog"> Отчёты </button>
+          <div style="padding-right: 10px">
+            <button class="records" v-if="userIsAdmin()" @click.prevent="openCreateOrderDialog"> Отчёты </button>
+          </div>
         </div>
       </div>
 
@@ -88,17 +98,20 @@
                         <div class="label-car" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
                         <textarea readonly class="description" :value="carIsNotFindInList() ? 'Автомобиль скрыт администратором.' : (editingOrder || !selectedOrderForShow ? selectedCar.desc : getCarDescById(selectedOrder.car))" />
                       </div>
-                    </div> 
-                    <div>
-                      <div class="comment">Комментарий: </div>
-                      <textarea v-if="!isBlockElementForEditingOrder()" id="orderDesc" class="description" v-model="selectedOrder.desc" />
-                      <div v-else class="description">{{ selectedOrder.desc }}</div>
+                    </div>
+                    <div class="author"> 
+                      <span> Автор заявки: </span> 
+                      <span style="margin 5px 0"> {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </span>
+                    </div>
+                    <div class="admin" style="display: flex; height: 55px;"> 
+                      <p style="margin-top: 5px; margin-bottom: 0px; margin-left: 1px;"> Согласующий заявки: </p>
+                      <p style="margin-top: 5px; margin-bottom: 5px; margin-left: 1px;" v-if="!(editingOrder || !selectedOrderForShow)"> {{ orderInfo.adminName }} </p>
+                      <vue-select style="padding: 0; margin-left: 0" :clearable="false" v-if="coordinators.length > 0 && (editingOrder || !selectedOrderForShow)" :options="coordinators"/>
                     </div>
                     <div>
-                      <div class="author"> Автор заявки: {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </div>
-                      <vue-select :options="coordinators"/>
-                      <div class="admin"> Согласующий: 
-                      </div>
+                      <div class="comment" style="margin-bottom: 5px;">Комментарий: </div>
+                      <textarea v-if="!isBlockElementForEditingOrder()" id="orderDesc" class="description" v-model="selectedOrder.desc" />
+                      <div v-else class="description">{{ selectedOrder.desc }}</div>
                     </div>
                   </div>
                   <div class="controller-order">
@@ -264,7 +277,7 @@ export default {
   data() {
     return {
         showCreateOrderDialog: false,
-        // https://portal.npf-isb.ru   http://localhost:4451
+        // https://portal.npf-isb.ru  http://localhost:4451  https://portal.npf-isb.ru/back-test'
         PARRENT_URL: `https://portal.npf-isb.ru/carsharing/api/`,
 
         USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
@@ -708,11 +721,10 @@ export default {
           this.coordinators.push(element.displayName);
         });
         console.log(this.coordinators);
-        // axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
-        // .then((res) => {
-        //   this.coordinators.push(res);
-        //   console.log(this.coordinators);
-        // })
+        axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
+        .then((res) => {
+          this.coordinators.push(res.data[0].displayName);
+        });
       })
     },
 
@@ -1675,7 +1687,19 @@ body {
   flex-wrap: wrap;
   background: none;
   margin-left: -15px;
-  font-size: 18px;
+  font-size: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.mainWindow .history .square {
+  transform: translateY(-6px);
+
+  margin-right: 10px;
+  margin-left: -20px;
+  padding-top: 10px;
+  padding-left: 10px;
+  padding-bottom: 10px;
+
   border: 1px solid var(--border-color);
 }
 
@@ -1778,7 +1802,7 @@ body {
 
 .info-order .description {
   width: 98%;
-  height: 290px;
+  height: 260px;
   resize: none;
   font-size: 18px;
   outline: none;
@@ -1790,8 +1814,13 @@ body {
 }
 
 .info-order .author, .info-order .admin {
-  font-size: 14px;
+  margin-top: 5px;
+  font-size: 16px;
   color: var(--sub-color);
+}
+
+.v-select {
+  width: 100%;
 }
 
 .order, .car {
@@ -2065,7 +2094,7 @@ ul.tabs > li:after{
   background-color: transparent;
   font-family: Open Sans,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
   color: var(--main-color);
-  height: 85px;
+  height: 77px;
   width: 100%;
   overflow-y: hidden;
   padding-left: 10px;
