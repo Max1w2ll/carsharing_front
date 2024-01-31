@@ -5,14 +5,16 @@
     <div class="mainWindow">
       <div class="history">
         <ul class="tabs clearfix" style="margin-top: 10px; margin-left: -45px">
-          <li>
-            <a href="#"> На согласование </a>
+          <li v-if="userIsAdmin()" :class="HISTORY_TABS.ALL">
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.ALL = 'active' "> Все заявки </a>
           </li>
-          <li class="active">
-            <a href="#"> История </a>
+          <li v-if="userIsCoordinator()" :class="HISTORY_TABS.NEED_APPROVE">
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.NEED_APPROVE = 'active' "> На согласование </a>
+          </li>
+          <li :class="HISTORY_TABS.HISTORY">
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.HISTORY = 'active' "> История </a>
           </li>
         </ul>
-        <!-- <div class="panel-header"> ИСТОРИЯ </div> -->
         <div class="square">
           <div style="display: flex">
             <input type="checkbox" id='showActual' class="custom-checkbox" v-model="showActual">
@@ -49,7 +51,7 @@
       </div>
 
       <div class="info">
-        <div class="panel-header"> ИНФОРМАЦИЯ </div>
+        <div class="panel-header"> Информация </div>
           <div :class="{'block-order': isBlockElementForEditingOrder()}" style="position: relative">
             <div class="square">
               <div class="inter-square">
@@ -300,6 +302,11 @@ export default {
           FREE: 'freeToday'
         },
         statusesList: () => [], 
+        HISTORY_TABS: { 
+          HISTORY: "active", 
+          NEED_APPROVE: "",  
+          ALL: "" 
+        },
 
         userJWT: () => [], 
         userInfo: () => [], 
@@ -443,6 +450,12 @@ export default {
       }, 500);
     },
 
+    clearHistoryTabs() {
+      for (var tab in this.HISTORY_TABS) {
+        this.HISTORY_TABS[tab] = "";
+      }
+    },
+
     getCarsByTabs() {
       if (this.cars.length !== 0) {
         if (this.activeTab == this.TABS.FREE) {
@@ -583,6 +596,7 @@ export default {
     async getUserInfo() {
       await axios.get(this.USER_INFO_GET, { withCredentials: true })
       .then((res) => {
+        console.log(res.data);
         this.userInfo = res.data;
       })
     },
@@ -714,6 +728,16 @@ export default {
       .then((res) => {
         return res.data
       })
+    },
+
+    userIsCoordinator() {
+      for (var order in this.orders) {
+        if (this.orders[order].oorManager == this.userInfo.displayName) {
+          this.userInfo.isCoord = true;
+          break;
+        }
+      }
+      this.userInfo.isCoord = false;
     },
 
     async getCoordinators() {
@@ -881,6 +905,7 @@ export default {
       await axios.get(this.getFullUrl(API_LINKS.ORDERS_GET), { withCredentials: true })
       .then((res) => {
           this.orders = res.data
+          console.log(this.orders);
           const actualDate = new Date();
           this.filteredOrders = this.orders.filter(order =>  new Date(order.endDate) >= actualDate);
       });
@@ -1912,10 +1937,12 @@ body {
 
 .panel-header {
   display: block;
-  margin-block-start: 0.5em;
-  margin-block-end: 0.5em;
+  margin-block-start: 1.4em;
+  margin-block-end: 0.7em;
   margin-inline-start: 0px;
   margin-inline-end: 0px;
+
+  font-size: 16px;
 }
 
 .lastPanel .carList {
@@ -1981,7 +2008,7 @@ ul.tabs > li > a{
   text-overflow: ellipsis;
   text-decoration: none;
   color: var(--main-color);
-  font-size: 21px;
+  font-size: 16px;
   margin-top: -3px;
   padding-left: 3px;
 }
