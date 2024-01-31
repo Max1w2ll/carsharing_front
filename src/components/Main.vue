@@ -105,8 +105,8 @@
                     </div>
                     <div class="admin" style="display: flex; height: 55px;"> 
                       <p style="margin-top: 5px; margin-bottom: 0px; margin-left: 1px;"> Согласующий заявки: </p>
-                      <p style="margin-top: 5px; margin-bottom: 5px; margin-left: 1px;" v-if="!(editingOrder || !selectedOrderForShow)"> {{ orderInfo.adminName }} </p>
-                      <vue-select style="padding: 0; margin-left: 0" :clearable="false" v-if="coordinators.length > 0 && (editingOrder || !selectedOrderForShow)" :options="coordinators"/>
+                      <p style="margin-top: 5px; margin-bottom: 5px; margin-left: 1px;" v-if="!(editingOrder || !selectedOrderForShow)"> {{ orderInfo.oorManager }} </p>
+                      <vue-select style="padding: 0; margin-left: 0" label="name" :clearable="false" v-model="selectedManager" v-if="coordinators.length > 0 && (editingOrder || !selectedOrderForShow)" :options="coordinators"/>
                     </div>
                     <div>
                       <div class="comment" style="margin-bottom: 5px;">Комментарий: </div>
@@ -278,15 +278,17 @@ export default {
     return {
         showCreateOrderDialog: false,
         // https://portal.npf-isb.ru  http://localhost:4451  https://portal.npf-isb.ru/back-test'
-        PARRENT_URL: `https://portal.npf-isb.ru/carsharing/api/`,
+        PARRENT_URL: `https://portal.npf-isb.ru/back-test/api/`,
 
         USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
         USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
         COORDINATORS_GET: 'https://portal.npf-isb.ru/employee-base/api/users/groups/10-01%20%D0%93%D1%80%D1%83%D0%BF%D0%BF%D0%B0%20%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D0%B0%D0%BC%D0%B8',
-        COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%90%D0%B1%D1%80%D0%B0%D0%BC%D0%BE%D0%B2%D0%B8%D1%87',
-
+        COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%90%D0%B1%D1%80%D0%B0%D0%BC%D0%BE%D0%B2%D0%B8%D1%87', //Abramovich
+        //COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%9F%D0%BB%D0%B5%D1%82%D1%82', //Plett
+        //COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%92%D0%B5%D0%BB%D0%B8%D0%BA%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9', //Max
+        
         STATUS_ORDER: {
           DONE: 'Одобрен',
           DENY: 'Отклонен',
@@ -313,6 +315,7 @@ export default {
 
         selectedOrder: {},
         selectedCar: {},
+        selectedManager: {},
         showDate: new Date(),
         currentPlan: [],
         editingCar: {},
@@ -714,18 +717,21 @@ export default {
     },
 
     async getCoordinators() {
+      await axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
+        .then((res) => {
+          this.coordinators.push({name: res.data[0].displayName, email: res.data[0].mail});
+          this.selectedManager = this.coordinators[0];
+          console.log(this.selectedManager);
+        });
+      // Пока тестируем, лучше не давать возможность отправлять письма менеджерам
+      /*
       await axios.get(this.COORDINATORS_GET, { withCredentials: true })
       .then((res) => {
-        let coordinatorsData = res.data;
-        coordinatorsData.forEach(element => {
-          this.coordinators.push(element.displayName);
+        res.data.forEach(element => {
+          this.coordinators.push({name: element.displayName, email: element.mail});
+          console.log(this.coordinators);
         });
-        console.log(this.coordinators);
-        axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
-        .then((res) => {
-          this.coordinators.push(res.data[0].displayName);
-        });
-      })
+      })*/
     },
 
     async getOrder(orderId) {
@@ -914,6 +920,8 @@ export default {
         this.orderInfo.desc = document.getElementById('orderDesc').value;
         this.orderInfo.beginDate = this.selectedOrder.beginDate ? this.selectedOrder.beginDate : "";
         this.orderInfo.endDate = this.selectedOrder.endDate ? this.selectedOrder.endDate : "";
+        this.orderInfo.oorManager = this.selectedManager.name ? this.selectedManager.name : "";
+        this.orderInfo.oorManagerEmail = this.selectedManager.email ? this.selectedManager.email : "";
         try {
           const res = await axios.post(this.getFullUrl(API_LINKS.ORDERS_POST), this.orderInfo, { withCredentials: true });
           ModalWindows.showModal("Заказ создан!", true);
@@ -2078,9 +2086,9 @@ ul.tabs > li:after{
 
 .info-order-car .label-car {
   max-height: 24px;
-  padding-left: 9px;
+  padding-left: 2px;
   margin-bottom: 4px;
-  margin-top: 6px;
+  margin-top: 3px;
   overflow: hidden;
 }
 
