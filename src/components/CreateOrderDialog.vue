@@ -477,4 +477,10 @@
     color: var(--main-color);
   }
 
+  .admin .vs__selected {
+    padding-left: 5px;
+    max-width: 195px;
+    overflow-x: clip;
+  }
+
 </style>

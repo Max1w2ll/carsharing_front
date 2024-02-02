@@ -5,20 +5,21 @@
     <div class="mainWindow">
       <div class="history">
         <ul class="tabs clearfix" style="margin-top: 10px; margin-left: -45px">
-          <li v-if="userIsAdmin()" :class="HISTORY_TABS.ALL">
-            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.ALL = 'active' "> Все заявки </a>
+          <li :class="HISTORY_TABS.NEED_APPROVE">
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.NEED_APPROVE = 'active'; filterHistory(); "> На согласование </a>
           </li>
-          <li v-if="userIsCoordinator()" :class="HISTORY_TABS.NEED_APPROVE">
-            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.NEED_APPROVE = 'active' "> На согласование </a>
-          </li>
-          <li :class="HISTORY_TABS.HISTORY">
-            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.HISTORY = 'active' "> История </a>
+          <li :class="HISTORY_TABS.ALL">
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.ALL = 'active'; filterHistory(); "> Все заявки </a>
           </li>
         </ul>
         <div class="square">
-          <div style="display: flex">
+          <div>
             <input type="checkbox" id='showActual' class="custom-checkbox" v-model="showActual">
             <label for='showActual' class="checkbox-label">Только актуальные</label>
+          </div>
+          <div>
+            <input @click="showMineOrders();" type="checkbox" id='showMine' class="custom-checkbox">
+            <label for='showMine' class="checkbox-label">Мои заявки</label>
           </div>
           <div class="search-box">
             <label class="search-label">Поиск</label>
@@ -64,7 +65,7 @@
                 </div>
                   <div class="info-order">
                     <div class="dateSettings">
-                      <div style="min-width: 130px;">
+                      <div style="min-width: 109px;">
                         Командировка:
                       </div> 
                       <div style="width: 100%;">
@@ -94,7 +95,7 @@
                     </div>
                     <div class="info-order-car">
                       <div class="auto">Автомобиль: </div>
-                      <div style="width: 100%; padding-left: 5px; margin-top: -3px; font-size: 16px;">
+                      <div style="width: 100%; margin-top: -3px;">
                         <div v-if="carIsNotFindInList()" style="padding-left: 10px; margin-top: 3px;">Скрыт</div>
                         <vue-select style="height: 34px;" :clearable="false" label="label" v-else-if="!carIsNotFindInList() && (editingOrder || !selectedOrderForShow)" v-model="selectedCar" :options="getCarsList()" @option:selected="selectCarFromOrder"/>
                         <div class="label-car" v-else>{{ getCarLabelById(selectedOrder.car) }}</div>
@@ -103,10 +104,10 @@
                     </div>
                     <div class="author"> 
                       <span> Автор заявки: </span> 
-                      <span style="margin 5px 0"> {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </span>
+                      <span style="margin 5px 0; padding-left: 5px;"> {{ selectedOrder.username ? selectedOrder.username : userInfo.displayName }} </span>
                     </div>
                     <div class="admin" style="display: flex; height: 55px;"> 
-                      <p style="margin-top: 5px; margin-bottom: 0px; margin-left: 1px;"> Согласующий заявки: </p>
+                      <p style="margin-top: 5px; margin-bottom: 0px; margin-left: 1px; width: 101px;"> Согласующий заявки: </p>
                       <p style="margin-top: 5px; margin-bottom: 5px; margin-left: 1px;" v-if="!(editingOrder || !selectedOrderForShow)"> {{ orderInfo.oorManager }} </p>
                       <vue-select style="padding: 0; margin-left: 0" label="name" :clearable="false" v-model="selectedManager" v-if="coordinators.length > 0 && (editingOrder || !selectedOrderForShow)" :options="coordinators"/>
                     </div>
@@ -303,9 +304,8 @@ export default {
         },
         statusesList: () => [], 
         HISTORY_TABS: { 
-          HISTORY: "active", 
-          NEED_APPROVE: "",  
-          ALL: "" 
+          ALL: "active",
+          NEED_APPROVE: "" 
         },
 
         userJWT: () => [], 
@@ -316,6 +316,7 @@ export default {
         filteredOrders: () => [],
 
         showActual: true,
+        showMine: false,
         searchTextOrder: '',
 
         coordinators: [],
@@ -453,6 +454,28 @@ export default {
     clearHistoryTabs() {
       for (var tab in this.HISTORY_TABS) {
         this.HISTORY_TABS[tab] = "";
+      }
+    },
+
+    filterHistory() {      
+      switch ("active") {
+        case this.HISTORY_TABS.ALL:
+          this.getOrders(); 
+          break;
+        case this.HISTORY_TABS.NEED_APPROVE:
+          this.orders = this.orders.filter(order => order.oorManager == this.userInfo.displayName || order.status == 'В обработке');
+          break;
+      }
+    },
+
+    showMineOrders() {
+      this.showMine = !this.showMine;
+      console.log(this.showMines);
+      if (this.showMine) {
+        this.orders = this.orders.filter(order => order.username == this.userInfo.displayName);
+      } 
+      else {
+        this.filterHistory();
       }
     },
 
@@ -730,9 +753,10 @@ export default {
       })
     },
 
-    userIsCoordinator() {
-      for (var order in this.orders) {
-        if (this.orders[order].oorManager == this.userInfo.displayName) {
+    async userIsCoordinator() {
+      for (var coordinator in this.coordinators) {
+        if (coordinator == this.userInfo.displayName) {
+          console.log(coordinator);
           this.userInfo.isCoord = true;
           break;
         }
@@ -1629,7 +1653,7 @@ body {
 .orderList {
   padding-right: 15px;
 
-  height: 630px;
+  height: 585px;
 
   overflow-x: clip;
   overflow-y: scroll;
@@ -2376,6 +2400,10 @@ input[type="date"]{
 
 .vs__search, .vs__selected-options, .vs__dropdown-toggle, .vs__open-indicator {
   cursor: pointer;
+}
+
+.admin .vs__search {
+  height: 0px;
 }
 
 </style>
