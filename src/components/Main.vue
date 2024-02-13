@@ -5,21 +5,20 @@
     <div class="mainWindow">
       <div class="history">
         <ul class="tabs clearfix" style="margin-top: 10px; margin-left: -45px">
-          <li :class="HISTORY_TABS.NEED_APPROVE">
+          <li :class="HISTORY_TABS.NEED_APPROVE" v-if="userInfo.isCoord">
             <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.NEED_APPROVE = 'active'; filterHistory(); "> На согласование </a>
           </li>
-          <li :class="HISTORY_TABS.ALL">
+          <li :class="HISTORY_TABS.ALL" v-if="userIsAdmin()">
             <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.ALL = 'active'; filterHistory(); "> Все заявки </a>
+          </li>
+          <li :class="HISTORY_TABS.MINE">
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.MINE = 'active'; filterHistory(); "> Мои заявки </a>
           </li>
         </ul>
         <div class="square">
           <div>
             <input type="checkbox" id='showActual' class="custom-checkbox" v-model="showActual">
             <label for='showActual' class="checkbox-label">Только актуальные</label>
-          </div>
-          <div>
-            <input @click="showMineOrders();" type="checkbox" id='showMine' class="custom-checkbox">
-            <label for='showMine' class="checkbox-label">Мои заявки</label>
           </div>
           <div class="search-box">
             <label class="search-label">Поиск</label>
@@ -284,7 +283,7 @@ export default {
         PARRENT_URL: `https://portal.npf-isb.ru/back-test/api/`,
 
         USER_JWT_GET: 'https://portal.npf-isb.ru/auth/api/checkjwt',
-        USER_INFO_GET: 'https://portal.npf-isb.ru/carsharing/api/auth/userinfo',
+        USER_INFO_GET: 'https://portal.npf-isb.ru/back-test/api/auth/userinfo',
         AUTH_GET: 'https://portal.npf-isb.ru/auth/api/ldapauth',
 
         COORDINATORS_GET: 'https://portal.npf-isb.ru/employee-base/api/users/groups/10-01%20%D0%93%D1%80%D1%83%D0%BF%D0%BF%D0%B0%20%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D0%B0%D0%BC%D0%B8',
@@ -304,7 +303,8 @@ export default {
         },
         statusesList: () => [], 
         HISTORY_TABS: { 
-          ALL: "active",
+          MINE: "active",
+          ALL: "",
           NEED_APPROVE: "" 
         },
 
@@ -316,7 +316,6 @@ export default {
         filteredOrders: () => [],
 
         showActual: true,
-        showMine: false,
         searchTextOrder: '',
 
         coordinators: [],
@@ -459,23 +458,16 @@ export default {
 
     filterHistory() {      
       switch ("active") {
+        case this.HISTORY_TABS.MINE:
+          this.getOrders(); 
+          this.orders = this.orders.filter(order => order.username == this.userInfo.displayName);
+          break;
         case this.HISTORY_TABS.ALL:
           this.getOrders(); 
           break;
         case this.HISTORY_TABS.NEED_APPROVE:
-          this.orders = this.orders.filter(order => order.oorManager == this.userInfo.displayName || order.status == 'В обработке');
+          this.orders = this.orders.filter(order => order.oorManager == this.userInfo.displayName && order.status == 'В обработке');
           break;
-      }
-    },
-
-    showMineOrders() {
-      this.showMine = !this.showMine;
-      console.log(this.showMines);
-      if (this.showMine) {
-        this.orders = this.orders.filter(order => order.username == this.userInfo.displayName);
-      } 
-      else {
-        this.filterHistory();
       }
     },
 
@@ -754,23 +746,31 @@ export default {
     },
 
     async userIsCoordinator() {
+      this.userInfo.isCoord = false;
       for (var coordinator in this.coordinators) {
         if (coordinator == this.userInfo.displayName) {
-          console.log(coordinator);
           this.userInfo.isCoord = true;
           break;
         }
       }
-      this.userInfo.isCoord = false;
     },
 
     async getCoordinators() {
+      await axios.get(this.COORDINATORS_GET, { withCredentials: true })
+        .then((res) => {
+          res.data.forEach(element => {
+            this.coordinators.push({name: element.displayName, email: element.mail});
+            console.log(this.coordinators);
+          });
+          console.log(this.selectedManager);
+        });
       await axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
         .then((res) => {
           this.coordinators.push({name: res.data[0].displayName, email: res.data[0].mail});
-          this.selectedManager = this.coordinators[0];
-          console.log(this.selectedManager);
-        });
+      });
+      this.coordinators.sort((a, b) => a.name > b.name ? 1 : -1);
+      this.selectedManager = this.coordinators[0];
+      
       // Пока тестируем, лучше не давать возможность отправлять письма менеджерам
       /*
       await axios.get(this.COORDINATORS_GET, { withCredentials: true })
@@ -928,10 +928,10 @@ export default {
     async getOrders() {
       await axios.get(this.getFullUrl(API_LINKS.ORDERS_GET), { withCredentials: true })
       .then((res) => {
-          this.orders = res.data
-          console.log(this.orders);
-          const actualDate = new Date();
-          this.filteredOrders = this.orders.filter(order =>  new Date(order.endDate) >= actualDate);
+        this.orders = res.data
+        console.log(this.orders);
+        const actualDate = new Date();
+        this.filteredOrders = this.orders.filter(order =>  new Date(order.endDate) >= actualDate);
       });
     },
 
@@ -1120,6 +1120,7 @@ export default {
 
   mounted() {
     this.getCoordinators();
+    this.userIsCoordinator();
     this.statusesList = [this.STATUS_ORDER.DONE, this.STATUS_ORDER.PROCESS, this.STATUS_ORDER.DENY]
     setTimeout(async () => {
       this.loadData();
@@ -2032,7 +2033,7 @@ ul.tabs > li > a{
   text-overflow: ellipsis;
   text-decoration: none;
   color: var(--main-color);
-  font-size: 16px;
+  font-size: 14px;
   margin-top: -3px;
   padding-left: 3px;
 }
