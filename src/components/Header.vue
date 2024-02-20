@@ -14,9 +14,9 @@
       </div>
       <div class="banner">
         <a href="/">
-          <img src="./isb_logo.jpg" width=79 height="64">
+          <img src="./isb_logo.jpg" width=102 height="64">
         </a>
-        <p> Заявки на транспорт ООО «НПФ «ИСБ»</p>
+        <p> Заявки на транспорт </p>
       </div>
     </div>
 </template>

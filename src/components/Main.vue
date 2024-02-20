@@ -6,13 +6,13 @@
       <div class="history">
         <ul class="tabs clearfix" style="margin-top: 10px; margin-left: -45px">
           <li :class="HISTORY_TABS.NEED_APPROVE" v-if="userInfo.isCoord">
-            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.NEED_APPROVE = 'active'; filterHistory(); "> На согласование </a>
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.NEED_APPROVE = 'active';"> На согласование </a>
           </li>
           <li :class="HISTORY_TABS.ALL" v-if="userIsAdmin()">
-            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.ALL = 'active'; filterHistory(); "> Все заявки </a>
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.ALL = 'active';"> Все заявки </a>
           </li>
           <li :class="HISTORY_TABS.MINE">
-            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.MINE = 'active'; filterHistory(); "> Мои заявки </a>
+            <a href="#" @click="clearHistoryTabs(); HISTORY_TABS.MINE = 'active';"> Мои заявки </a>
           </li>
         </ul>
         <div class="square">
@@ -21,7 +21,7 @@
             <label for='showActual' class="checkbox-label">Только актуальные</label>
           </div>
           <div class="search-box">
-            <label class="search-label">Поиск</label>
+            <label class="search-label">Поиск</label> 
             <div style="width: 100%;">
               <input class="search-area" v-model="searchTextOrder"/>
             </div>
@@ -45,7 +45,7 @@
             </div>
           </div>
           <div style="padding-right: 10px">
-            <button class="records" v-if="userIsAdmin()" @click.prevent="openCreateOrderDialog"> Отчёты </button>
+            <button class="records" @click.prevent="openCreateOrderDialog"> Отчёты </button>
           </div>
         </div>
       </div>
@@ -58,7 +58,7 @@
                 <div style="display: flex; justify-content: space-between;">
                   <div class = "rectangleGreen">
                     <div v-if="!userIsAdmin() || isBlockElementForEditingOrder()" style="padding-left: 10px;">{{ selectedOrder.status }}</div>
-                    <vue-select style="min-width: 160px" :clearable="false" v-if="userIsAdmin() && selectedOrder.id && !isBlockElementForEditingOrder()" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
+                    <vue-select style="min-width: 160px" :clearable="false" v-if="(userIsAdmin() || userIsCoordinator()) && selectedOrder.id && !isBlockElementForEditingOrder()" v-model="selectedOrder.status" :options="statusesList" @option:selected="setSaveStatusOrder"/>
                   </div>
                   <button :class = "{'clearSelectedFull': selectedOrder.id === undefined, 'clearSelectedHalf': 'id' in selectedOrder}" @click.prevent="clearSelected()">{{(selectedOrderForShow ? 'Новая заявка' : 'Создание заявки')}}</button>
                 </div>
@@ -107,8 +107,8 @@
                     </div>
                     <div class="admin" style="display: flex; height: 55px;"> 
                       <p style="margin-top: 5px; margin-bottom: 0px; margin-left: 1px; width: 101px;"> Согласующий заявки: </p>
-                      <p style="margin-top: 5px; margin-bottom: 5px; margin-left: 1px;" v-if="!(editingOrder || !selectedOrderForShow)"> {{ orderInfo.oorManager }} </p>
-                      <vue-select style="padding: 0; margin-left: 0" label="name" :clearable="false" v-model="selectedManager" v-if="coordinators.length > 0 && (editingOrder || !selectedOrderForShow)" :options="coordinators"/>
+                      <p style="margin-top: 5px; margin-bottom: 5px; margin-left: 1px;" v-if="!(editingOrder || !selectedOrderForShow)"> {{ selectedOrder.oorManager }} </p>
+                      <vue-select style="padding: 0; margin-left: 0" label="name" :clearable="false" v-model="selectedOrder.oorManager" v-if="coordinators.length > 0 && (editingOrder || !selectedOrderForShow)" :options="coordinators"/>
                     </div>
                     <div>
                       <div class="comment" style="margin-bottom: 5px;">Комментарий: </div>
@@ -288,8 +288,8 @@ export default {
 
         COORDINATORS_GET: 'https://portal.npf-isb.ru/employee-base/api/users/groups/10-01%20%D0%93%D1%80%D1%83%D0%BF%D0%BF%D0%B0%20%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D0%B0%D0%BC%D0%B8',
         COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%90%D0%B1%D1%80%D0%B0%D0%BC%D0%BE%D0%B2%D0%B8%D1%87', //Abramovich
-        //COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%9F%D0%BB%D0%B5%D1%82%D1%82', //Plett
-        //COORDINATOR_ABRAMOVICH_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%92%D0%B5%D0%BB%D0%B8%D0%BA%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9', //Max
+        COORDINATOR_PLETT_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%9F%D0%BB%D0%B5%D1%82%D1%82', //Plett
+        COORDINATOR_MAX_GET: 'https://portal.npf-isb.ru/employee-base/api/users/fullname/%D0%92%D0%B5%D0%BB%D0%B8%D0%BA%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9', //Max
         
         STATUS_ORDER: {
           DONE: 'Одобрен',
@@ -309,10 +309,11 @@ export default {
         },
 
         userJWT: () => [], 
-        userInfo: () => [], 
+        userInfo: () => [],
         cars: () => [], 
         avalibleCars: () => [], 
         orders: () => [],
+        ordersToShow: () => [],
         filteredOrders: () => [],
 
         showActual: true,
@@ -365,20 +366,32 @@ export default {
   computed: {
     filteredItems() {
       if (!this.searchTextOrder) {
-        return this.showActual ? this.filteredOrders : this.orders;
+        let result = this.showActual ? this.filteredOrders : this.orders;
+        try {
+          result = result.filter(this.getFilterByTabs());
+        }
+        finally {
+          return result;
+        }
       }
+
+      const e = this.searchTextOrder.toLowerCase().split(" ");
+
+      let result = (this.showActual ? this.filteredOrders : this.orders).
+      filter((t => e.every((e => Object.values(t).some((t => ("string" === typeof t || t instanceof String) && t.toLowerCase().includes(e)))))))
+      return result.filter(this.getFilterByTabs())
       
-      const searchTerms = this.searchTextOrder.toLowerCase().split(' ');
-      return (this.showActual ? this.filteredOrders : this.orders).filter(item => {
-        return searchTerms.every(term => {
-          return Object.values(item).some(value => {
-            if (typeof value === 'string' || value instanceof String) {
-              return value.toLowerCase().includes(term);
-            }
-            return false;
-          });
-        });
-      });
+      // const searchTerms = this.searchTextOrder.toLowerCase().split(' ');
+      // return (this.showActual ? this.filteredOrders : this.orders).filter(item => {
+      //   return searchTerms.every(term => {
+      //     return Object.values(item).some(value => {
+      //       if (typeof value === 'string' || value instanceof String) {
+      //         return value.toLowerCase().includes(term);
+      //       }
+      //       return false;
+      //     });
+      //   });
+      // });
     }
   },
 
@@ -456,18 +469,16 @@ export default {
       }
     },
 
-    filterHistory() {      
+    getFilterByTabs() {      
       switch ("active") {
         case this.HISTORY_TABS.MINE:
-          this.getOrders(); 
-          this.orders = this.orders.filter(order => order.username == this.userInfo.displayName);
-          break;
-        case this.HISTORY_TABS.ALL:
-          this.getOrders(); 
+          return (order => order.username == this.userInfo.displayName);
           break;
         case this.HISTORY_TABS.NEED_APPROVE:
-          this.orders = this.orders.filter(order => order.oorManager == this.userInfo.displayName && order.status == 'В обработке');
+          return (order => order.oorManager == this.userInfo.displayName);
           break;
+        default:
+          return (order => order);
       }
     },
 
@@ -611,7 +622,6 @@ export default {
     async getUserInfo() {
       await axios.get(this.USER_INFO_GET, { withCredentials: true })
       .then((res) => {
-        console.log(res.data);
         this.userInfo = res.data;
       })
     },
@@ -741,14 +751,14 @@ export default {
     getCar(carID) {
       axios.get(this.getFullUrl(API_LINKS.CAR_GET) + carID, { withCredentials: true })
       .then((res) => {
-        return res.data
+        return res.data;
       })
     },
 
     async userIsCoordinator() {
       this.userInfo.isCoord = false;
-      for (var coordinator in this.coordinators) {
-        if (coordinator == this.userInfo.displayName) {
+      for (let i = 0; i < this.coordinators.length; i++) {
+        if (this.coordinators[i].name == this.userInfo.displayName) {
           this.userInfo.isCoord = true;
           break;
         }
@@ -760,11 +770,17 @@ export default {
         .then((res) => {
           res.data.forEach(element => {
             this.coordinators.push({name: element.displayName, email: element.mail});
-            console.log(this.coordinators);
           });
-          console.log(this.selectedManager);
         });
       await axios.get(this.COORDINATOR_ABRAMOVICH_GET, { withCredentials: true })
+        .then((res) => {
+          this.coordinators.push({name: res.data[0].displayName, email: res.data[0].mail});
+      });
+      await axios.get(this.COORDINATOR_PLETT_GET, { withCredentials: true })
+        .then((res) => {
+          this.coordinators.push({name: res.data[0].displayName, email: res.data[0].mail});
+      });
+      await axios.get(this.COORDINATOR_MAX_GET, { withCredentials: true })
         .then((res) => {
           this.coordinators.push({name: res.data[0].displayName, email: res.data[0].mail});
       });
@@ -928,8 +944,7 @@ export default {
     async getOrders() {
       await axios.get(this.getFullUrl(API_LINKS.ORDERS_GET), { withCredentials: true })
       .then((res) => {
-        this.orders = res.data
-        console.log(this.orders);
+        this.orders = res.data.reverse();
         const actualDate = new Date();
         this.filteredOrders = this.orders.filter(order =>  new Date(order.endDate) >= actualDate);
       });
@@ -1073,6 +1088,7 @@ export default {
     },
 
     activateEditingOrder() {
+      this.orderInfo.oorManager = this.selectedOrder.oorManager;
       const selectedCarByOrder = this.cars.find(it => it.id === this.selectedOrder.car)
       if (selectedCarByOrder) {
         this.selectCar(selectedCarByOrder);
@@ -1104,8 +1120,10 @@ export default {
     async loadData() {
       await this.getUserJWT();
       await this.getUserInfo();
+      await this.getCoordinators();
+      await this.userIsCoordinator();
       this.getCars();
-      this.getOrders();
+      await this.getOrders();
     },
     
     onEscKeyPress(event) {
@@ -1119,8 +1137,6 @@ export default {
   },
 
   mounted() {
-    this.getCoordinators();
-    this.userIsCoordinator();
     this.statusesList = [this.STATUS_ORDER.DONE, this.STATUS_ORDER.PROCESS, this.STATUS_ORDER.DENY]
     setTimeout(async () => {
       this.loadData();
@@ -1654,14 +1670,10 @@ body {
 .orderList {
   padding-right: 15px;
 
-  height: 585px;
+  height: 618px;
 
   overflow-x: clip;
   overflow-y: scroll;
-}
-
-.orderList-employee {
-  height: 83%
 }
 
 .ordersList::-webkit-scrollbar-track {
